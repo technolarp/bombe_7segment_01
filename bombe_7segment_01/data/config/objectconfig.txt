@@ -1,0 +1,11 @@
+{
+	"objectId": 1,
+	"groupId": 1,
+	"objectName": "bombe 01",
+	"activeLeds": 8,
+    "brightness": 80,
+	"tempsRestant": 300,
+	"statutActuel": 0,
+	"couleur1": [0,255,0],
+	"couleur2": [255,0,0]
+}
