@@ -22,8 +22,11 @@ class M_config
   	uint8_t activeLeds;
     uint8_t brightness;
 
-    uint32_t tempsRestant;
+    int16_t tempsRestant;
     uint8_t statutActuel;
+
+    int16_t tempsInitial;
+    int16_t intervalTemps;
 
     CRGB couleur1;
     CRGB couleur2;
@@ -143,6 +146,8 @@ class M_config
       objectConfig.brightness = doc["brightness"];
       objectConfig.tempsRestant = doc["tempsRestant"];
       objectConfig.statutActuel = doc["statutActuel"];
+      objectConfig.tempsInitial = doc["tempsInitial"];
+      objectConfig.intervalTemps = doc["intervalTemps"];
       
   		if (doc.containsKey("objectName"))
   		{ 
@@ -265,6 +270,8 @@ class M_config
     doc["brightness"] = objectConfig.brightness;
     doc["tempsRestant"] = objectConfig.tempsRestant;
     doc["statutActuel"] = objectConfig.statutActuel;
+    doc["tempsInitial"] = objectConfig.tempsInitial;
+    doc["intervalTemps"] = objectConfig.intervalTemps;
 
     StaticJsonDocument<128> docCouleur1;
     JsonArray arrayCouleur1 = docCouleur1.to<JsonArray>();
@@ -360,6 +367,9 @@ class M_config
     objectConfig.brightness = 80;
     objectConfig.tempsRestant = 300;
     objectConfig.statutActuel = 0;
+    objectConfig.tempsInitial = 300;
+    objectConfig.intervalTemps = 1000;
+    
 
     objectConfig.couleur1.red = 0;
     objectConfig.couleur1.green = 255;

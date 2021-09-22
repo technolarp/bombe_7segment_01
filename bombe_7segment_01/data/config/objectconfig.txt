@@ -5,7 +5,9 @@
 	"activeLeds": 8,
     "brightness": 80,
 	"tempsRestant": 300,
-	"statutActuel": 0,
+	"tempsInitial": 300,
+	"intervalTemps": 1000,
+	"statutActuel": 0,	
 	"couleur1": [0,255,0],
 	"couleur2": [255,0,0]
 }
