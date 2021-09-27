@@ -28,12 +28,6 @@
    ----------------------------------------------------------------------------
 */
 
-/*
-ajouter statut dans config
-blink 7seg
-pb buzzer
-
-*/
 #include <Arduino.h>
 
 // TASK SCHEDULER
@@ -74,11 +68,9 @@ enum {
   BOMBE_ALLUMEE = 0,
   BOMBE_ACTIVE = 1,
   BOMBE_EXPLOSION = 2,
-  BOMBE_EXPLOSEE = 3
+  BOMBE_EXPLOSEE = 3,
+  BOMBE_SAFE = 4
 };
-
-//uint8_t statutBombe = BOMBE_ALLUMEE;
-//uint8_t statutBombePrecedent = BOMBE_ALLUMEE;
 
 // HEARTBEAT
 unsigned long int previousMillisHB;
@@ -165,6 +157,10 @@ void setup()
   buzzer = new M_buzzer(PIN_BUZZER, &globalScheduler);
   buzzer->doubleBeep();
 
+  // initialiser l'aleat
+  //randomSeed(analogRead(A0));
+  randomSeed(ESP.getCycleCount());
+
   // HEARTBEAT
   currentMillisHB = millis();
   previousMillisHB = currentMillisHB;
@@ -231,6 +227,11 @@ void loop()
      case BOMBE_EXPLOSEE:
       // la bombe a explosee
       bombeExplosee();
+      break;
+
+      case BOMBE_SAFE:
+      // la bombe a explosee
+      bombeSafe();
       break;
       
     default:
@@ -333,6 +334,17 @@ void bombeAllumee()
     previousMillisRefresh = millis();
     a7segmentDisplay.setBlinkAffichage(false);
     intervalRefresh=1000;
+
+    // affecter les fils aleatoires
+    affecteFilsAleatoires();
+    
+    Serial.print("AFFECTATION:  ");
+    for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+    {
+      Serial.print(aConfig.objectConfig.actionFil[i]);
+      Serial.print(" ");
+    }
+    Serial.println(" ");
     
     // ecrire la nouvelle config
     //aConfig.writeObjectConfig("/config/objectconfig.txt");
@@ -408,6 +420,9 @@ void bombeActive()
 
     // mettre a jour l affichage
     a7segmentDisplay.showTempsRestant(max<int16_t>(0,aConfig.objectConfig.tempsRestant));
+
+    // check fils coupes
+    checkFilCoupe();
   }
 }
 
@@ -470,7 +485,179 @@ void bombeExplosee()
   }
 }
 
+void bombeSafe()
+{
+  if (uneFois)
+  {
+    uneFois = false;
+    
+    // on eteint les leds
+    aFastled->allLedOff();
 
+    // on affiche "- - - -"
+    a7segmentDisplay.showSafe();
+  }
+}
+
+// check fil coupe
+void checkFilCoupe()
+{
+  // scan all wires
+  for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+  {
+    // if the i wire was not previously cutted ans is now cut
+    if ( (aConfig.objectConfig.actionFil[i] != FIL_COUPE) && (aMcp23017.readPin(i)) )
+    { 
+      switch (aConfig.objectConfig.actionFil[i]) 
+      {
+        case FIL_NEUTRE:
+          // wire is neutral, nothing to do
+          aConfig.objectConfig.actionFil[i]=FIL_COUPE;
+          Serial.print("fil neutre: ");
+          Serial.println(i);
+        break;
+        
+        case FIL_DELAI:
+          // divide ul_Interval by 2
+          buzzer->doubleBeep();
+          aConfig.objectConfig.intervalTemps/=2;
+          aConfig.objectConfig.actionFil[i]=FIL_COUPE;
+          Serial.print("fil delai: ");
+          Serial.println(i);
+        break;
+    
+        case FIL_SAFE:
+          // si la bomme est deja au statut BOMBE_EXPLOSION, on ne change pas pour BOMBE_SAFE
+          if (aConfig.objectConfig.statutBombe != BOMBE_EXPLOSION)
+          {
+            // le bomb est safe
+            buzzer->shortBeep();
+            aConfig.objectConfig.statutBombe = BOMBE_SAFE;
+            uneFois = true;
+            Serial.print("fil safe: ");
+            Serial.println(i);
+          }
+          aConfig.objectConfig.actionFil[i]=FIL_COUPE;
+        break;
+        
+        case FIL_EXPLOSION:
+          // detonate the bomb
+          aConfig.objectConfig.statutBombe=BOMBE_EXPLOSION;
+          aConfig.objectConfig.actionFil[i]=FIL_COUPE;
+          uneFois = true;
+          Serial.print("fil boom: ");
+          Serial.println(i);
+        break;
+        
+        default:
+          // do nothing      
+        break;
+      }
+    }    
+  }
+}
+
+void affecteFilsAleatoires()
+{
+  uint8_t filsAleatoiresCpt = 0;
+  uint8_t filsAleatoiresCptCopie = 0;
+  uint8_t indexfilAssignation = 0;
+
+  uint8_t nbFilExplosionTmp=aConfig.objectConfig.nbFilExplosion;
+  uint8_t nbFilSafeTmp=aConfig.objectConfig.nbFilSafe;
+  uint8_t nbFilDelaiTmp=aConfig.objectConfig.nbFilDelai;
+
+  uint8_t filAssignation[aConfig.objectConfig.nbFilActif];
+  for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+  {
+    filAssignation[i]=FIL_ALEATOIRE;
+  }
+  
+  for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+  {
+    if (aConfig.objectConfig.actionFil[i]==FIL_ALEATOIRE)
+    {
+      filsAleatoiresCpt++;
+    }
+  }
+
+  filsAleatoiresCptCopie=filsAleatoiresCpt;
+  
+  // prepare FIL_EXPLOSION wires
+  while( (filsAleatoiresCpt>0) && (nbFilExplosionTmp>0) )
+  {
+    filAssignation[indexfilAssignation]=FIL_EXPLOSION;
+    indexfilAssignation++;
+    nbFilExplosionTmp--;
+    filsAleatoiresCpt--;
+  }
+
+  // prepare FIL_SAFE wires
+  while( (filsAleatoiresCpt>0) && (nbFilSafeTmp>0) )
+  {
+    filAssignation[indexfilAssignation]=FIL_SAFE;
+    indexfilAssignation++;
+    nbFilSafeTmp--;
+    filsAleatoiresCpt--;
+  }
+
+  // prepare FIL_DELAI wires
+  while( (filsAleatoiresCpt>0) && (nbFilDelaiTmp>0) )
+  {
+    filAssignation[indexfilAssignation]=FIL_DELAI;
+    indexfilAssignation++;
+    nbFilDelaiTmp--;
+    filsAleatoiresCpt--;
+  }
+
+  // create an array of random number between 10 and 50
+  uint8_t tabAleatoire[aConfig.objectConfig.nbFilActif];
+  for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+  {
+    tabAleatoire[i]=random(10,50);
+  }
+    
+  // assign new wire in actionFil[]  
+  for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+  {
+    if (aConfig.objectConfig.actionFil[i]==FIL_ALEATOIRE)
+    {
+      // find the greater index in tabAleatoire
+      uint8_t indexToUse = indexMaxValeur(filsAleatoiresCptCopie, tabAleatoire);
+      tabAleatoire[indexToUse]=0;
+      
+      // assign the new wire type with the random index
+      aConfig.objectConfig.actionFil[i]=filAssignation[indexToUse];
+    }
+  }
+
+  // s'il reste des fil aleatoire, on les passe en neutre
+  for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+  {
+    if (aConfig.objectConfig.actionFil[i]==FIL_ALEATOIRE)
+    {
+      aConfig.objectConfig.actionFil[i]=FIL_NEUTRE;
+    }
+  }
+}
+
+// index of max value in an array
+int indexMaxValeur(uint8_t arraySize, uint8_t arrayToSearch[])
+{
+  uint8_t indexMax=0;
+  uint8_t currentMax=0;
+  
+  for (uint8_t i=0;i<arraySize;i++)
+  {
+    if (arrayToSearch[i]>=currentMax)
+    {
+      currentMax = arrayToSearch[i];
+      indexMax = i;
+    }
+  }
+  
+  return(indexMax);
+}
 /*
    ----------------------------------------------------------------------------
    FIN DES FONCTIONS ADDITIONNELLES

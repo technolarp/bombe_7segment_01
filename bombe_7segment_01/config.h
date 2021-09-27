@@ -8,6 +8,19 @@
 #include <IPAddress.h>
 #include <FastLED.h>
 
+
+// FILS DE DESAMORCAGE
+#define FILS_MAX 8
+
+enum {
+  FIL_NEUTRE = 0,
+  FIL_SAFE = 1,
+  FIL_DELAI = 2,
+  FIL_EXPLOSION = 3,
+  FIL_ALEATOIRE = 4,
+  FIL_COUPE = 5
+};
+
 class M_config
 {
   public:
@@ -34,6 +47,15 @@ class M_config
 
     CRGB couleur1;
     CRGB couleur2;
+
+    // repartition des fils aleatoires
+    uint8_t nbFilActif;
+    uint8_t nbFilExplosion;
+    uint8_t nbFilSafe;
+    uint8_t nbFilDelai;
+
+    // DEFINITION DES ACTIONS POUR CHAQUE FIL
+    uint8_t actionFil[FILS_MAX];
   };
   
   // creer une structure
@@ -155,6 +177,11 @@ class M_config
       objectConfig.intervalTemps = doc["intervalTemps"];
       objectConfig.beepEvery = doc["beepEvery"];
       objectConfig.beepUnder = doc["beepUnder"];
+
+      objectConfig.nbFilActif = doc["nbFilActif"];
+      objectConfig.nbFilExplosion = doc["nbFilExplosion"];
+      objectConfig.nbFilSafe = doc["nbFilSafe"];
+      objectConfig.nbFilDelai = doc["nbFilDelai"];
       
   		if (doc.containsKey("objectName"))
   		{ 
@@ -179,6 +206,16 @@ class M_config
         objectConfig.couleur2.red = couleur[0];
         objectConfig.couleur2.green = couleur[1];
         objectConfig.couleur2.blue =  couleur[2];
+      }
+
+      if (doc.containsKey("actionFil"))
+      {
+        JsonArray actions = doc["actionFil"];
+        
+        for (uint8_t i=0;i<FILS_MAX;i++)
+        {
+          objectConfig.actionFil[i] = actions[i];
+        }
       }
     }
   		
@@ -282,6 +319,12 @@ class M_config
     doc["intervalTemps"] = objectConfig.intervalTemps;
     doc["beepEvery"] = objectConfig.beepEvery;
     doc["beepUnder"] = objectConfig.beepUnder;
+    doc["nbFilActif"] = objectConfig.nbFilActif;
+    doc["nbFilExplosion"] = objectConfig.nbFilExplosion;
+    doc["nbFilSafe"] = objectConfig.nbFilSafe;
+    doc["nbFilDelai"] = objectConfig.nbFilDelai;
+
+
 
     StaticJsonDocument<128> docCouleur1;
     JsonArray arrayCouleur1 = docCouleur1.to<JsonArray>();
@@ -298,6 +341,15 @@ class M_config
     arrayCouleur2.add(objectConfig.couleur2.blue);
     
     doc["couleur2"]=arrayCouleur2;
+
+    StaticJsonDocument<128> docActions;
+    JsonArray arrayActions = docActions.to<JsonArray>();
+    for (uint8_t i=0;i<FILS_MAX;i++)
+    {
+      arrayActions.add(objectConfig.actionFil[i]);
+    }
+    
+    doc["actionFil"]=arrayActions;
 
     // Serialize JSON to file
     if (serializeJson(doc, file) == 0) 
@@ -382,8 +434,16 @@ class M_config
     objectConfig.intervalTemps = 1000;
     objectConfig.beepEvery = 30;
     objectConfig.beepUnder = 10;
+    objectConfig.nbFilActif = 4;
+    objectConfig.nbFilExplosion = 2;
+    objectConfig.nbFilSafe = 2;
+    objectConfig.nbFilDelai = 4;
     
-
+    for (uint8_t i=0;i<FILS_MAX;i++)
+    {
+      objectConfig.actionFil[i]=0;
+    }
+    
     objectConfig.couleur1.red = 0;
     objectConfig.couleur1.green = 255;
     objectConfig.couleur1.blue =  0;
