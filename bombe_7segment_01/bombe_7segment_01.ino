@@ -1,4 +1,4 @@
-/*
+ /*
    ----------------------------------------------------------------------------
    TECHNOLARP - https://technolarp.github.io/
    BOMBE 7SEGMENT 01 - https://github.com/technolarp/bombe_7segment_01
@@ -23,24 +23,18 @@
    D1     I2C SCL
    D2     I2C SDA
    D3     TM1637 DIO
-   D4     BUILTIN LED
    D5     TM1637 CLK
    D8     BUZZER
    ----------------------------------------------------------------------------
 */
 
-#include <Arduino.h>
-
 /*
-// WIFI
-#include <ESPAsyncTCP.h>
-#include <ESPAsyncWebServer.h>
+ajouter statut dans config
+blink 7seg
+pb buzzer
 
-AsyncWebServer server(80);
-
-// WEBSOCKET
-AsyncWebSocket ws("/ws");
 */
+#include <Arduino.h>
 
 // TASK SCHEDULER
 #define _TASK_OO_CALLBACKS
@@ -71,20 +65,20 @@ M_buzzer* buzzer;
 // DIVERS
 bool uneFois = true;
 bool blinkUneFois = true;
-
 bool blinkMinutesOuSecondes = false;
+
+int16_t tempsInitialTmp;
 
 // STATUTS
 enum {
   BOMBE_ALLUMEE = 0,
   BOMBE_ACTIVE = 1,
   BOMBE_EXPLOSION = 2,
-  BOMBE_EXPLOSEE = 3,
-  BOMBE_BLINK = 6
+  BOMBE_EXPLOSEE = 3
 };
 
-uint8_t statutBombe = BOMBE_ALLUMEE;
-uint8_t statutBombePrecedent = BOMBE_ALLUMEE;
+//uint8_t statutBombe = BOMBE_ALLUMEE;
+//uint8_t statutBombePrecedent = BOMBE_ALLUMEE;
 
 // HEARTBEAT
 unsigned long int previousMillisHB;
@@ -153,6 +147,20 @@ void setup()
   }
   aFastled->allLedOff();
 
+  // CHECK RESET OBJECT CONFIG  
+  if (!aMcp23017.readPin(BOUTON_4) && !aMcp23017.readPin(BOUTON_1) )
+  {
+    aFastled->allLedOn(CRGB::Yellow);
+    
+    Serial.println(F(""));
+    Serial.println(F("!!! RESET OBJECT CONFIG !!!"));
+    Serial.println(F(""));
+    aConfig.writeDefaultObjectConfig("/config/objectconfig.txt");
+    aConfig.printJsonFile("/config/objectconfig.txt");
+
+    delay(1000);
+  }
+
   // BUZZER
   buzzer = new M_buzzer(PIN_BUZZER, &globalScheduler);
   buzzer->doubleBeep();
@@ -167,7 +175,7 @@ void setup()
   currentMillisRefresh = currentMillisHB;
   intervalRefresh = 300;
 
-  // ùdouble point
+  // double point
   ul_PreviousMillisDoublePoint = millis();
   ul_CurrentMillisDoublePoint = previousMillisHB;
   ul_IntervalDoublePoint = 500;
@@ -203,7 +211,7 @@ void loop()
   globalScheduler.execute();
 
   // gerer le statut de la serrure
-  switch (statutBombe)
+  switch (aConfig.objectConfig.statutBombe)
   {
     case BOMBE_ALLUMEE:
       // la bombe doit etre activée
@@ -223,11 +231,6 @@ void loop()
      case BOMBE_EXPLOSEE:
       // la bombe a explosee
       bombeExplosee();
-      break;
-
-    case BOMBE_BLINK:
-      // la bombe est active
-      bombeBlink();
       break;
       
     default:
@@ -268,13 +271,10 @@ void bombeAllumee()
   {
     uneFois = false;
 
-    // on allume les led rouge
-    aFastled->allLedOff();
-    for (uint8_t i = 0; i < aConfig.objectConfig.activeLeds; i++)
-    {
-      aFastled->setLed(i, aConfig.objectConfig.couleur1);
-    }
-    aFastled->ledShow();
+    // on allume les leds verte
+    aFastled->allLedOn(aConfig.objectConfig.couleur1);
+    
+    tempsInitialTmp=aConfig.objectConfig.tempsInitial;
 
     Serial.print(F("BOMBE ALLUMEE"));
     Serial.println();
@@ -286,15 +286,15 @@ void bombeAllumee()
   {
     if (a7segmentDisplay.getBlinkMinutesOuSecondes())
     {
-      aConfig.objectConfig.tempsRestant+=60;
+      tempsInitialTmp+=60;
     }
     else
     {
-      aConfig.objectConfig.tempsRestant+=1;
+      tempsInitialTmp+=1;
     }
     
     // on ne depasse pas 99 minutes
-    aConfig.objectConfig.tempsRestant=min<int16_t>(99*60, aConfig.objectConfig.tempsRestant);
+    tempsInitialTmp=min<int16_t>(99*60, tempsInitialTmp);
   }
 
   // BOUTON_3  appuyé, on diminue le temps
@@ -302,15 +302,15 @@ void bombeAllumee()
   {
     if (a7segmentDisplay.getBlinkMinutesOuSecondes())
     {
-      aConfig.objectConfig.tempsRestant-=60;
+      tempsInitialTmp-=60;
     }
     else
     {
-      aConfig.objectConfig.tempsRestant-=1;
+      tempsInitialTmp-=1;
     }
     
     // on ne depasse pas 0 minutes
-    aConfig.objectConfig.tempsRestant=max<int16_t>(0, aConfig.objectConfig.tempsRestant);
+    tempsInitialTmp=max<int16_t>(0, tempsInitialTmp);
   }
 
   // check si switch
@@ -325,11 +325,17 @@ void bombeAllumee()
   if (aMcp23017.checkButton(BOUTON_4))
   {
     // la bombe est maintenant active
-    statutBombe = BOMBE_ACTIVE;
+    aConfig.objectConfig.statutBombe = BOMBE_ACTIVE;
+    aConfig.objectConfig.tempsRestant=tempsInitialTmp;
+    
     uneFois = true;
+    
     previousMillisRefresh = millis();
     a7segmentDisplay.setBlinkAffichage(false);
     intervalRefresh=1000;
+    
+    // ecrire la nouvelle config
+    //aConfig.writeObjectConfig("/config/objectconfig.txt");
   }
 
   currentMillisRefresh = millis();
@@ -340,7 +346,7 @@ void bombeAllumee()
   }
   
   // mettre a jour l affichage
-  a7segmentDisplay.showTempsRestant(aConfig.objectConfig.tempsRestant);
+  a7segmentDisplay.showTempsRestant(tempsInitialTmp);
 }
 
 void bombeActive()
@@ -349,46 +355,50 @@ void bombeActive()
   {
     uneFois = false;
 
-    // on allume les led rouge
-    //aFastled->allLedOff();
-    for (uint8_t i = 0; i < aConfig.objectConfig.activeLeds; i++)
-    {
-      aFastled->setLed(i, aConfig.objectConfig.couleur2);
-    }
-    aFastled->ledShow();
-
+    // on allume les leds rouge
+    aFastled->allLedOn(aConfig.objectConfig.couleur2);
+    
     Serial.print(F("BOMBE ACTIVE"));
     Serial.println();
   }
 
-  if ( aConfig.objectConfig.tempsRestant == 0 )
+  if ( aConfig.objectConfig.tempsRestant == -1 )
   {
     // le compte a rebours est terminé !!
     uneFois = true;
-    statutBombe = BOMBE_EXPLOSION;
+    aConfig.objectConfig.statutBombe = BOMBE_EXPLOSION;
   }
   else
   {
+    // il reste du temps
     currentMillisRefresh = millis();
-    if(currentMillisRefresh - previousMillisRefresh > intervalRefresh)
+    if(currentMillisRefresh - previousMillisRefresh > aConfig.objectConfig.intervalTemps)
     {
       previousMillisRefresh = currentMillisRefresh;
+
+      // on decompte le temps restant
       aConfig.objectConfig.tempsRestant-=1;
-  
-      // beep toutes les 30 secondes
-      if (aConfig.objectConfig.tempsRestant % 30 == 0) 
+   
+      // beep toutes les X secondes
+      if (aConfig.objectConfig.beepEvery != 0)
       {
-        buzzer->shortBeep();
+        if (aConfig.objectConfig.tempsRestant % aConfig.objectConfig.beepEvery == 0)
+        {
+          buzzer->shortBeep();
+        }
       }
     
-      // beep toutes les secondes quand il reste 10 secondes ou moins
-      if (aConfig.objectConfig.tempsRestant <= 10 )
+      // beep toutes les secondes quand il reste Y secondes ou moins
+      if (aConfig.objectConfig.beepUnder != 0)
       {
-        buzzer->shortBeep();
+        if (aConfig.objectConfig.tempsRestant <= aConfig.objectConfig.beepUnder )
+        {
+          buzzer->shortBeep();
+        }
       }
     }
   
-    // changer le :
+    // blinker le :
     ul_CurrentMillisDoublePoint = millis();
     if(ul_CurrentMillisDoublePoint - ul_PreviousMillisDoublePoint > ul_IntervalDoublePoint)
     {
@@ -397,8 +407,8 @@ void bombeActive()
     }
 
     // mettre a jour l affichage
-    a7segmentDisplay.showTempsRestant(aConfig.objectConfig.tempsRestant);
-  }  
+    a7segmentDisplay.showTempsRestant(max<int16_t>(0,aConfig.objectConfig.tempsRestant));
+  }
 }
 
 void bombeExplosion()
@@ -410,20 +420,56 @@ void bombeExplosion()
     Serial.print(F("BOMBE EXPLOSION"));
     Serial.println();
 
-    // on allume les led rouge
-    aFastled->allLedOn(CRGB::Blue);  
+    // on demarre l'animation led
+    if (!aFastled->isEnabled() && blinkUneFois)
+    {
+      blinkUneFois = false;
+
+      // on buzze 5 second
+      buzzer->beep(800, 5000, 2);
+
+      // on blink lesleds
+      aFastled->startAnimBlink(50, 100, aConfig.objectConfig.couleur2, aConfig.objectConfig.activeLeds);
+
+      a7segmentDisplay.setBlinkAffichage(false);
+      intervalRefresh=200;
+    }
+  }
+
+  // on blink l'afficheur 7 segment
+  currentMillisRefresh = millis();
+  if(currentMillisRefresh - previousMillisRefresh > intervalRefresh)
+  {
+    previousMillisRefresh = currentMillisRefresh;
+    a7segmentDisplay.setBlinkAffichage(!a7segmentDisplay.getBlinkAffichage());
+    a7segmentDisplay.showExplosion();
+  }
+
+  if (!aFastled->isAnimActive())
+  {
+    Serial.println(F("END TASK EXPLOSION"));
+  
+    uneFois = true;
+  
+    // changer le statut
+    aConfig.objectConfig.statutBombe = BOMBE_EXPLOSEE;
   }
 }
 
 void bombeExplosee()
 {
-  
+  if (uneFois)
+  {
+    uneFois = false;
+    
+    // on eteint les leds
+    aFastled->allLedOff();
+
+    // on affiche "- - - -"
+    a7segmentDisplay.showExplosee();
+  }
 }
 
-void bombeBlink()
-{
-  
-}
 
 /*
    ----------------------------------------------------------------------------

@@ -23,10 +23,14 @@ class M_config
     uint8_t brightness;
 
     int16_t tempsRestant;
-    uint8_t statutActuel;
+    uint8_t statutBombe;
+    uint8_t statutBombePrecedent;
 
     int16_t tempsInitial;
     int16_t intervalTemps;
+
+    int16_t beepEvery;
+    int16_t beepUnder;
 
     CRGB couleur1;
     CRGB couleur2;
@@ -145,9 +149,12 @@ class M_config
   		objectConfig.activeLeds = doc["activeLeds"];
       objectConfig.brightness = doc["brightness"];
       objectConfig.tempsRestant = doc["tempsRestant"];
-      objectConfig.statutActuel = doc["statutActuel"];
+      objectConfig.statutBombe = doc["statutBombe"];
+      objectConfig.statutBombePrecedent = doc["statutBombePrecedent"];
       objectConfig.tempsInitial = doc["tempsInitial"];
       objectConfig.intervalTemps = doc["intervalTemps"];
+      objectConfig.beepEvery = doc["beepEvery"];
+      objectConfig.beepUnder = doc["beepUnder"];
       
   		if (doc.containsKey("objectName"))
   		{ 
@@ -269,9 +276,12 @@ class M_config
     doc["activeLeds"] = objectConfig.activeLeds;
     doc["brightness"] = objectConfig.brightness;
     doc["tempsRestant"] = objectConfig.tempsRestant;
-    doc["statutActuel"] = objectConfig.statutActuel;
+    doc["statutBombe"] = objectConfig.statutBombe;
+    doc["statutBombePrecedent"] = objectConfig.statutBombePrecedent;
     doc["tempsInitial"] = objectConfig.tempsInitial;
     doc["intervalTemps"] = objectConfig.intervalTemps;
+    doc["beepEvery"] = objectConfig.beepEvery;
+    doc["beepUnder"] = objectConfig.beepUnder;
 
     StaticJsonDocument<128> docCouleur1;
     JsonArray arrayCouleur1 = docCouleur1.to<JsonArray>();
@@ -366,9 +376,12 @@ class M_config
   	objectConfig.activeLeds = 8;
     objectConfig.brightness = 80;
     objectConfig.tempsRestant = 300;
-    objectConfig.statutActuel = 0;
+    objectConfig.statutBombe = 0;
+    objectConfig.statutBombePrecedent = 0;
     objectConfig.tempsInitial = 300;
     objectConfig.intervalTemps = 1000;
+    objectConfig.beepEvery = 30;
+    objectConfig.beepUnder = 10;
     
 
     objectConfig.couleur1.red = 0;
@@ -381,7 +394,7 @@ class M_config
 
     strlcpy(  objectConfig.objectName,
     			          "serrure 01",
-    			          sizeof("serrure 01"));
+    			          sizeof("bombe 01"));
   	
   	writeObjectConfig(filename);
   }

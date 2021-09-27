@@ -5,9 +5,13 @@
 	"activeLeds": 8,
     "brightness": 80,
 	"tempsRestant": 300,
-	"tempsInitial": 300,
+	"tempsInitial": 5,
 	"intervalTemps": 1000,
-	"statutActuel": 0,	
+	"statutActuel": 0,
+	"statutBombe": 0,
+	"statutBombePrecedent": 0,
+	"beepEvery": 30,
+	"beepUnder": 10,
 	"couleur1": [0,255,0],
 	"couleur2": [255,0,0]
 }
