@@ -187,7 +187,7 @@ void setup()
   */
   // CLIENT MODE POUR DEBUG
   const char* ssid = "MYDEBUG";
-  const char* password = "3V8WtBvJ";
+  const char* password = "******";
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
