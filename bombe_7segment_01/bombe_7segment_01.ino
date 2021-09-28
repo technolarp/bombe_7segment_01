@@ -30,6 +30,15 @@
 
 #include <Arduino.h>
 
+// WIFI
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+
+AsyncWebServer server(80);
+
+// WEBSOCKET
+AsyncWebSocket ws("/ws");
+
 // TASK SCHEDULER
 #define _TASK_OO_CALLBACKS
 #include <TaskScheduler.h>
@@ -57,11 +66,13 @@ M_mcp23017 aMcp23017(0);
 M_buzzer* buzzer;
 
 // DIVERS
+int16_t tempsRestant;
 bool uneFois = true;
 bool blinkUneFois = true;
 bool blinkMinutesOuSecondes = false;
 
 int16_t tempsInitialTmp;
+uint8_t actionFil[FILS_MAX];
 
 // STATUTS
 enum {
@@ -69,8 +80,13 @@ enum {
   BOMBE_ACTIVE = 1,
   BOMBE_EXPLOSION = 2,
   BOMBE_EXPLOSEE = 3,
-  BOMBE_SAFE = 4
+  BOMBE_SAFE = 4,
+  BOMBE_PAUSE = 5,
+  BOMBE_BLINK = 6
 };
+
+uint8_t statutBombe = BOMBE_ALLUMEE;
+uint8_t statutBombePrecedent = BOMBE_ALLUMEE;
 
 // HEARTBEAT
 unsigned long int previousMillisHB;
@@ -118,11 +134,9 @@ void setup()
   aConfig.printJsonFile("/config/objectconfig.txt");
   aConfig.readObjectConfig("/config/objectconfig.txt");
 
-  /*
   Serial.println(F("NETWORK CONFIG"));
   aConfig.printJsonFile("/config/networkconfig.txt");
   aConfig.readNetworkConfig("/config/networkconfig.txt");
-  */
 
   // LED RGB
   aFastled = new M_fastled(&globalScheduler);
@@ -152,14 +166,54 @@ void setup()
 
     delay(1000);
   }
+  aFastled->allLedOff();
 
   // BUZZER
   buzzer = new M_buzzer(PIN_BUZZER, &globalScheduler);
   buzzer->doubleBeep();
 
   // initialiser l'aleat
-  //randomSeed(analogRead(A0));
   randomSeed(ESP.getCycleCount());
+
+  // WIFI
+  WiFi.disconnect(true);
+  
+  /*
+  // AP MODE
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAPConfig(aConfig.networkConfig.apIP, aConfig.networkConfig.apIP, aConfig.networkConfig.apNetMsk);
+  WiFi.softAP(aConfig.networkConfig.apName, aConfig.networkConfig.apPassword);
+  
+  */
+  // CLIENT MODE POUR DEBUG
+  const char* ssid = "MYDEBUG";
+  const char* password = "3V8WtBvJ";
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) 
+  {
+    Serial.printf("WiFi Failed!\n");        
+  }
+  
+  // WEB SERVER
+  // Print ESP Local IP Address
+  Serial.print(F("localIP: "));
+  Serial.println(WiFi.localIP());
+  Serial.print(F("softAPIP: "));
+  Serial.println(WiFi.softAPIP());
+
+  // Route for root / web page
+  server.serveStatic("/", LittleFS, "/www/").setDefaultFile("config.html").setTemplateProcessor(processor);
+  server.serveStatic("/config", LittleFS, "/config/");
+  server.onNotFound(notFound);
+
+  // WEBSOCKET
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+
+  // Start server
+  server.begin();
 
   // HEARTBEAT
   currentMillisHB = millis();
@@ -198,16 +252,16 @@ void setup()
 void loop()
 {
   // avoid watchdog reset
-  //yield();
+  yield();
   
   // WEBSOCKET
-  //ws.cleanupClients();
+  ws.cleanupClients();
   
   // manage task scheduler
   globalScheduler.execute();
 
   // gerer le statut de la serrure
-  switch (aConfig.objectConfig.statutBombe)
+  switch (statutBombe)
   {
     case BOMBE_ALLUMEE:
       // la bombe doit etre activée
@@ -233,6 +287,16 @@ void loop()
       // la bombe a explosee
       bombeSafe();
       break;
+
+      case BOMBE_PAUSE:
+      // la bombe est en pause
+      bombePause();
+      break;
+
+      case BOMBE_BLINK:
+      // blink leds
+      bombeBlink();
+      break;
       
     default:
       // nothing
@@ -245,8 +309,8 @@ void loop()
   {
     previousMillisHB = currentMillisHB;
 
-    // send new value to html
-    //sendUptime();
+    // envoyer l'uptime
+    sendUptime();
         
     Serial.println("heartbeat");
   }
@@ -276,6 +340,7 @@ void bombeAllumee()
     aFastled->allLedOn(aConfig.objectConfig.couleur1);
     
     tempsInitialTmp=aConfig.objectConfig.tempsInitial;
+    tempsRestant=tempsInitialTmp;
 
     Serial.print(F("BOMBE ALLUMEE"));
     Serial.println();
@@ -326,25 +391,9 @@ void bombeAllumee()
   if (aMcp23017.checkButton(BOUTON_4))
   {
     // la bombe est maintenant active
-    aConfig.objectConfig.statutBombe = BOMBE_ACTIVE;
-    aConfig.objectConfig.tempsRestant=tempsInitialTmp;
-    
+    statutBombe = BOMBE_ACTIVE;
+        
     uneFois = true;
-    
-    previousMillisRefresh = millis();
-    a7segmentDisplay.setBlinkAffichage(false);
-    intervalRefresh=1000;
-
-    // affecter les fils aleatoires
-    affecteFilsAleatoires();
-    
-    Serial.print("AFFECTATION:  ");
-    for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
-    {
-      Serial.print(aConfig.objectConfig.actionFil[i]);
-      Serial.print(" ");
-    }
-    Serial.println(" ");
     
     // ecrire la nouvelle config
     //aConfig.writeObjectConfig("/config/objectconfig.txt");
@@ -372,13 +421,30 @@ void bombeActive()
     
     Serial.print(F("BOMBE ACTIVE"));
     Serial.println();
+
+    tempsRestant=tempsInitialTmp;
+    previousMillisRefresh = millis();
+    a7segmentDisplay.setBlinkAffichage(false);
+    intervalRefresh=1000;
+
+    // affecter les fils aleatoires
+    affecteFilsAleatoires();
+    sendActionFil();
+    
+    Serial.print("AFFECTATION:  ");
+    for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+    {
+      Serial.print(actionFil[i]);
+      Serial.print(" ");
+    }
+    Serial.println(" ");
   }
 
-  if ( aConfig.objectConfig.tempsRestant == -1 )
+  if ( tempsRestant == -1 )
   {
     // le compte a rebours est terminé !!
     uneFois = true;
-    aConfig.objectConfig.statutBombe = BOMBE_EXPLOSION;
+    statutBombe = BOMBE_EXPLOSION;
   }
   else
   {
@@ -389,12 +455,12 @@ void bombeActive()
       previousMillisRefresh = currentMillisRefresh;
 
       // on decompte le temps restant
-      aConfig.objectConfig.tempsRestant-=1;
+      tempsRestant-=1;
    
       // beep toutes les X secondes
       if (aConfig.objectConfig.beepEvery != 0)
       {
-        if (aConfig.objectConfig.tempsRestant % aConfig.objectConfig.beepEvery == 0)
+        if (tempsRestant % aConfig.objectConfig.beepEvery == 0)
         {
           buzzer->shortBeep();
         }
@@ -403,7 +469,7 @@ void bombeActive()
       // beep toutes les secondes quand il reste Y secondes ou moins
       if (aConfig.objectConfig.beepUnder != 0)
       {
-        if (aConfig.objectConfig.tempsRestant <= aConfig.objectConfig.beepUnder )
+        if (tempsRestant <= aConfig.objectConfig.beepUnder )
         {
           buzzer->shortBeep();
         }
@@ -419,7 +485,8 @@ void bombeActive()
     }
 
     // mettre a jour l affichage
-    a7segmentDisplay.showTempsRestant(max<int16_t>(0,aConfig.objectConfig.tempsRestant));
+    a7segmentDisplay.showTempsRestant(max<int16_t>(0,tempsRestant));
+    sendTempsRestant();
 
     // check fils coupes
     checkFilCoupe();
@@ -467,7 +534,7 @@ void bombeExplosion()
     uneFois = true;
   
     // changer le statut
-    aConfig.objectConfig.statutBombe = BOMBE_EXPLOSEE;
+    statutBombe = BOMBE_EXPLOSEE;
   }
 }
 
@@ -485,6 +552,20 @@ void bombeExplosee()
   }
 }
 
+void bombePause()
+{
+  if (uneFois)
+  {
+    uneFois = false;
+
+    // save statut
+    // unpause
+  }
+
+  previousMillisRefresh = millis();
+  
+}
+
 void bombeSafe()
 {
   if (uneFois)
@@ -499,6 +580,26 @@ void bombeSafe()
   }
 }
 
+void bombeBlink()
+{
+  if (!aFastled->isEnabled() && blinkUneFois)
+  {
+    blinkUneFois = false;
+    aFastled->startAnimBlink(15, 200, CRGB::Blue, aConfig.objectConfig.activeLeds);
+  }
+
+  if (!aFastled->isAnimActive())
+  {
+    Serial.println(F("END TASK BLINK"));
+
+    //blinkUneFois = true;
+    uneFois = true;
+
+    // retour au statut precedent
+    statutBombe = statutBombePrecedent;
+  }
+}
+
 // check fil coupe
 void checkFilCoupe()
 {
@@ -506,13 +607,13 @@ void checkFilCoupe()
   for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
   {
     // if the i wire was not previously cutted ans is now cut
-    if ( (aConfig.objectConfig.actionFil[i] != FIL_COUPE) && (aMcp23017.readPin(i)) )
-    { 
-      switch (aConfig.objectConfig.actionFil[i]) 
+    if ( (actionFil[i] != FIL_COUPE) && (aMcp23017.readPin(i)) )
+    {
+      switch (actionFil[i]) 
       {
         case FIL_NEUTRE:
           // wire is neutral, nothing to do
-          aConfig.objectConfig.actionFil[i]=FIL_COUPE;
+          actionFil[i]=FIL_COUPE;
           Serial.print("fil neutre: ");
           Serial.println(i);
         break;
@@ -521,29 +622,29 @@ void checkFilCoupe()
           // divide ul_Interval by 2
           buzzer->doubleBeep();
           aConfig.objectConfig.intervalTemps/=2;
-          aConfig.objectConfig.actionFil[i]=FIL_COUPE;
+          actionFil[i]=FIL_COUPE;
           Serial.print("fil delai: ");
           Serial.println(i);
         break;
     
         case FIL_SAFE:
           // si la bomme est deja au statut BOMBE_EXPLOSION, on ne change pas pour BOMBE_SAFE
-          if (aConfig.objectConfig.statutBombe != BOMBE_EXPLOSION)
+          if (statutBombe != BOMBE_EXPLOSION)
           {
             // le bomb est safe
             buzzer->shortBeep();
-            aConfig.objectConfig.statutBombe = BOMBE_SAFE;
+            statutBombe = BOMBE_SAFE;
             uneFois = true;
             Serial.print("fil safe: ");
             Serial.println(i);
           }
-          aConfig.objectConfig.actionFil[i]=FIL_COUPE;
+          actionFil[i]=FIL_COUPE;
         break;
         
         case FIL_EXPLOSION:
           // detonate the bomb
-          aConfig.objectConfig.statutBombe=BOMBE_EXPLOSION;
-          aConfig.objectConfig.actionFil[i]=FIL_COUPE;
+          statutBombe=BOMBE_EXPLOSION;
+          actionFil[i]=FIL_COUPE;
           uneFois = true;
           Serial.print("fil boom: ");
           Serial.println(i);
@@ -553,6 +654,8 @@ void checkFilCoupe()
           // do nothing      
         break;
       }
+
+      sendActionFil();
     }    
   }
 }
@@ -571,11 +674,12 @@ void affecteFilsAleatoires()
   for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
   {
     filAssignation[i]=FIL_ALEATOIRE;
+    actionFil[i]=aConfig.objectConfig.actionFilInit[i];
   }
   
   for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
   {
-    if (aConfig.objectConfig.actionFil[i]==FIL_ALEATOIRE)
+    if (aConfig.objectConfig.actionFilInit[i]==FIL_ALEATOIRE)
     {
       filsAleatoiresCpt++;
     }
@@ -620,23 +724,23 @@ void affecteFilsAleatoires()
   // assign new wire in actionFil[]  
   for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
   {
-    if (aConfig.objectConfig.actionFil[i]==FIL_ALEATOIRE)
+    if (actionFil[i]==FIL_ALEATOIRE)
     {
       // find the greater index in tabAleatoire
       uint8_t indexToUse = indexMaxValeur(filsAleatoiresCptCopie, tabAleatoire);
       tabAleatoire[indexToUse]=0;
       
       // assign the new wire type with the random index
-      aConfig.objectConfig.actionFil[i]=filAssignation[indexToUse];
+      actionFil[i]=filAssignation[indexToUse];
     }
   }
 
   // s'il reste des fil aleatoire, on les passe en neutre
   for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
   {
-    if (aConfig.objectConfig.actionFil[i]==FIL_ALEATOIRE)
+    if (actionFil[i]==FIL_ALEATOIRE)
     {
-      aConfig.objectConfig.actionFil[i]=FIL_NEUTRE;
+      actionFil[i]=FIL_NEUTRE;
     }
   }
 }
@@ -663,3 +767,401 @@ int indexMaxValeur(uint8_t arraySize, uint8_t arrayToSearch[])
    FIN DES FONCTIONS ADDITIONNELLES
    ----------------------------------------------------------------------------
 */
+
+void sendUptime()
+{
+  uint32_t now = millis() / 1000;
+  uint16_t days = now / 86400;
+  uint16_t hours = (now%86400) / 3600;
+  uint16_t minutes = (now%3600) / 60;
+  uint16_t seconds = now % 60;
+    
+  String toSend = "{\"uptime\":\"";
+  toSend+= String(days) + String("d ") + String(hours) + String("h ") + String(minutes) + String("m ") + String(seconds) + String("s");
+  toSend+= "\"}";
+
+  ws.textAll(toSend);
+}
+
+void sendActionFil()
+{
+  String toSend = "{\"actionFil\":[";
+  for (uint8_t i=0;i<FILS_MAX;i++)
+  {
+    toSend+= actionFil[i];
+    if (i <(FILS_MAX-1))
+    {
+      toSend+= ",";
+    }
+  }  
+  toSend+= "]}";
+
+  ws.textAll(toSend);
+}
+
+void sendTempsRestant()
+{
+  String toSend = "{\"tempsRestant\":";
+  toSend+= tempsRestant;
+  toSend+= "}";
+
+  ws.textAll(toSend);
+}
+
+void convertStrToRGB(String source, uint8_t* r, uint8_t* g, uint8_t* b)
+{
+  uint32_t  number = (uint32_t) strtol( &source[1], NULL, 16);
+  
+  // Split them up into r, g, b values
+  *r = number >> 16;
+  *g = number >> 8 & 0xFF;
+  *b = number & 0xFF;
+}
+
+void checkCharacter(char* toCheck, char* allowed, char replaceChar)
+{
+  for (int i = 0; i < strlen(toCheck); i++)
+  {
+    if (!strchr(allowed, toCheck[i]))
+    {
+      toCheck[i]=replaceChar;
+    }
+    Serial.print(toCheck[i]);
+  }
+  Serial.println("");
+}
+
+uint16_t checkValeur(uint16_t valeur, uint16_t minValeur, uint16_t maxValeur)
+{
+  return(min(max(valeur,minValeur), maxValeur));
+}
+
+String processor(const String& var)
+{  
+  if (var == "MAXLEDS")
+  {
+    return String(aFastled->getNbMaxLed());
+  }
+
+  if (var == "APNAME")
+  {
+    return String(aConfig.networkConfig.apName);
+  }
+
+  if (var == "OBJECTNAME")
+  {
+    return String(aConfig.objectConfig.objectName);
+  }
+   
+  return String();
+}
+
+
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) 
+{
+   switch (type) 
+    {
+      case WS_EVT_CONNECT:
+        Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+        // send config value to html
+        ws.textAll(aConfig.stringJsonFile("/config/objectconfig.txt"));
+        ws.textAll(aConfig.stringJsonFile("/config/networkconfig.txt"));
+
+        // send volatile info
+        sendActionFil();
+        sendTempsRestant();
+    
+        break;
+        
+      case WS_EVT_DISCONNECT:
+        Serial.printf("WebSocket client #%u disconnected\n", client->id());
+        break;
+        
+      case WS_EVT_DATA:
+        handleWebSocketMessage(arg, data, len);
+        break;
+        
+      case WS_EVT_PONG:
+      case WS_EVT_ERROR:
+        break;
+  }
+}
+
+
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) 
+{
+  
+  AwsFrameInfo *info = (AwsFrameInfo*)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) 
+  {
+    char buffer[100];
+    data[len] = 0;
+    sprintf(buffer,"%s\n", (char*)data);
+    Serial.print(buffer);
+    
+    StaticJsonDocument<256> doc;
+    DeserializationError error = deserializeJson(doc, buffer);
+    if (error)
+    {
+      Serial.println(F("Failed to deserialize buffer"));
+    }
+    else
+    {
+        // write config or not
+        bool writeObjectConfig = false;
+        bool sendObjectConfig = false;
+        bool writeNetworkConfig = false;
+        bool sendNetworkConfig = false;
+        
+        // modif object config
+        if (doc.containsKey("new_objectName"))
+        {
+          strlcpy(  aConfig.objectConfig.objectName,
+                    doc["new_objectName"],
+                    sizeof(aConfig.objectConfig.objectName));
+  
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+  
+        if (doc.containsKey("new_objectId")) 
+        {
+          uint16_t tmpValeur = doc["new_objectId"];
+          aConfig.objectConfig.objectId = checkValeur(tmpValeur,1,1000);
+  
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+  
+        if (doc.containsKey("new_groupId")) 
+        {
+          uint16_t tmpValeur = doc["new_groupId"];
+          aConfig.objectConfig.groupId = checkValeur(tmpValeur,1,1000);
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+  
+        if (doc.containsKey("new_activeLeds")) 
+        {
+          aFastled->allLedOff();
+          
+          uint16_t tmpValeur = doc["new_activeLeds"];
+          aConfig.objectConfig.activeLeds = checkValeur(tmpValeur,1,aFastled->getNbMaxLed());
+          aFastled->setNbLed(aConfig.objectConfig.activeLeds);
+          uneFois=true;
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+  
+        if (doc.containsKey("new_brightness"))
+        {
+          uint16_t tmpValeur = doc["new_brightness"];
+          aConfig.objectConfig.brightness = checkValeur(tmpValeur,0,255);
+          aFastled->setBrightness(aConfig.objectConfig.brightness);
+          //aFastled->ledShow();
+          uneFois=true;
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        if (doc.containsKey("new_tempsRestant"))
+        {
+          uint16_t tmpValeur = doc["new_tempsRestant"];
+          tempsRestant = checkValeur(tmpValeur,0,5940);
+          
+          currentMillisRefresh = millis();
+          previousMillisRefresh = currentMillisRefresh;
+          a7segmentDisplay.showTempsRestant(max<int16_t>(0,tempsRestant));
+          sendTempsRestant();
+        }
+
+        if (doc.containsKey("new_actionFilInit")) 
+        {
+          JsonArray newActionFil = doc["new_actionFilInit"];
+        
+          uint8_t changePosition = newActionFil[0];
+          uint8_t changeAction = newActionFil[1];
+          
+          aConfig.objectConfig.actionFilInit[changePosition]=changeAction;
+          actionFil[changePosition]=changeAction;
+          sendActionFil();
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        if (doc.containsKey("new_statutBombe"))
+        {
+          uint16_t tmpValeur = doc["new_statutBombe"];
+          statutBombe = checkValeur(tmpValeur,0,5);
+          
+          uneFois=true;
+
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        // statutBombePrecedent = statutBombe;
+
+        if (doc.containsKey("new_couleur1")) 
+        {
+          String newColorStr = doc["new_couleur1"];
+          convertStrToRGB(newColorStr,&aConfig.objectConfig.couleur1.red, &aConfig.objectConfig.couleur1.green, &aConfig.objectConfig.couleur1.blue);
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+          uneFois=true;
+        }
+
+        if (doc.containsKey("new_couleur2")) 
+        {
+          String newColorStr = doc["new_couleur2"];
+          convertStrToRGB(newColorStr,&aConfig.objectConfig.couleur2.red, &aConfig.objectConfig.couleur2.green, &aConfig.objectConfig.couleur2.blue);
+           
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+          uneFois=true;
+        }
+          
+        // modif network config
+        if (doc.containsKey("new_apName")) 
+        {
+          strlcpy(  aConfig.networkConfig.apName,
+                    doc["new_apName"],
+                    sizeof(aConfig.networkConfig.apName));
+  
+          // check for unsupported char
+          checkCharacter(aConfig.networkConfig.apName, "ABCDEFGHIJKLMNOPQRSTUVWYZ", 'A');
+          
+          writeNetworkConfig = true;
+          sendNetworkConfig = true;
+        }
+  
+        if (doc.containsKey("new_apPassword")) 
+        {
+          strlcpy(  aConfig.networkConfig.apPassword,
+                    doc["new_apPassword"],
+                    sizeof(aConfig.networkConfig.apPassword));
+  
+          writeNetworkConfig = true;
+        }
+  
+        if (doc.containsKey("new_apIP")) 
+        {
+          char newIPchar[16] = "";
+  
+          strlcpy(  newIPchar,
+                    doc["new_apIP"],
+                    sizeof(newIPchar));
+  
+          IPAddress newIP;
+          if (newIP.fromString(newIPchar)) 
+          {
+            Serial.println("valid IP");
+            aConfig.networkConfig.apIP = newIP;
+  
+            writeNetworkConfig = true;
+          }
+          
+          sendNetworkConfig = true;
+        }
+  
+        if (doc.containsKey("new_apNetMsk")) 
+        {
+          char newNMchar[16] = "";
+  
+          strlcpy(  newNMchar,
+                    doc["new_apNetMsk"],
+                    sizeof(newNMchar));
+  
+          IPAddress newNM;
+          if (newNM.fromString(newNMchar)) 
+          {
+            Serial.println("valid netmask");
+            aConfig.networkConfig.apNetMsk = newNM;
+  
+            writeNetworkConfig = true;
+          }
+  
+          sendNetworkConfig = true;
+        }
+        
+        // actions sur le esp8266
+        if ( doc.containsKey("new_restart") && doc["new_restart"]==1 )
+        {
+          Serial.println(F("RESTART RESTART RESTART"));
+          ESP.restart();
+        }
+  
+        if ( doc.containsKey("new_refresh") && doc["new_refresh"]==1 )
+        {
+          Serial.println(F("REFRESH"));
+          sendObjectConfig = true;
+          sendNetworkConfig = true;
+        }
+
+        if ( doc.containsKey("new_defaultObjectConfig") && doc["new_defaultObjectConfig"]==1 )
+        {
+          Serial.println(F("reset to default object config"));
+          aConfig.writeDefaultObjectConfig("/config/objectconfig.txt");
+          
+          sendObjectConfig = true;
+          uneFois = true;
+        }
+
+        if ( doc.containsKey("new_defaultNetworkConfig") && doc["new_defaultNetworkConfig"]==1 )
+        {
+          Serial.println(F("reset to default network config"));
+          aConfig.writeDefaultNetworkConfig("/config/networkconfig.txt");
+          
+          sendNetworkConfig = true;
+        }
+
+        if ( doc.containsKey("new_blink") && doc["new_blink"]==1 )
+        {
+          Serial.println(F("BLINK"));
+          blinkUneFois = true;
+          statutBombePrecedent = statutBombe;
+          statutBombe = BOMBE_BLINK;
+        }
+  
+        // modif config
+        // write object config
+        if (writeObjectConfig)
+        {
+          aConfig.writeObjectConfig("/config/objectconfig.txt");
+          //aConfig.printJsonFile("/config/objectconfig.txt");
+        }
+  
+        // resend object config
+        if (sendObjectConfig)
+        {
+          ws.textAll(aConfig.stringJsonFile("/config/objectconfig.txt"));
+        }
+  
+        // write network config
+        if (writeNetworkConfig)
+        {
+          aConfig.writeNetworkConfig("/config/networkconfig.txt");
+          //aConfig.printJsonFile("/config/networkconfig.txt");
+        }
+  
+        // resend network config
+        if (sendNetworkConfig)
+        {
+          ws.textAll(aConfig.stringJsonFile("/config/networkconfig.txt"));
+        }
+    }
+ 
+    // clear json buffer
+    doc.clear();
+  }
+}
+
+void notFound(AsyncWebServerRequest *request)
+{
+    request->send(404, "text/plain", "Not found");
+}

@@ -35,9 +35,9 @@ class M_config
   	uint8_t activeLeds;
     uint8_t brightness;
 
-    int16_t tempsRestant;
-    uint8_t statutBombe;
-    uint8_t statutBombePrecedent;
+    //int16_t tempsRestant;
+    //uint8_t statutBombe;
+    //uint8_t statutBombePrecedent;
 
     int16_t tempsInitial;
     int16_t intervalTemps;
@@ -55,7 +55,7 @@ class M_config
     uint8_t nbFilDelai;
 
     // DEFINITION DES ACTIONS POUR CHAQUE FIL
-    uint8_t actionFil[FILS_MAX];
+    uint8_t actionFilInit[FILS_MAX];
   };
   
   // creer une structure
@@ -170,9 +170,9 @@ class M_config
   		objectConfig.groupId = doc["groupId"];
   		objectConfig.activeLeds = doc["activeLeds"];
       objectConfig.brightness = doc["brightness"];
-      objectConfig.tempsRestant = doc["tempsRestant"];
-      objectConfig.statutBombe = doc["statutBombe"];
-      objectConfig.statutBombePrecedent = doc["statutBombePrecedent"];
+      //objectConfig.tempsRestant = doc["tempsRestant"];
+      //objectConfig.statutBombe = doc["statutBombe"];
+      //objectConfig.statutBombePrecedent = doc["statutBombePrecedent"];
       objectConfig.tempsInitial = doc["tempsInitial"];
       objectConfig.intervalTemps = doc["intervalTemps"];
       objectConfig.beepEvery = doc["beepEvery"];
@@ -208,13 +208,13 @@ class M_config
         objectConfig.couleur2.blue =  couleur[2];
       }
 
-      if (doc.containsKey("actionFil"))
+      if (doc.containsKey("actionFilInit"))
       {
-        JsonArray actions = doc["actionFil"];
+        JsonArray actions = doc["actionFilInit"];
         
         for (uint8_t i=0;i<FILS_MAX;i++)
         {
-          objectConfig.actionFil[i] = actions[i];
+          objectConfig.actionFilInit[i] = actions[i];
         }
       }
     }
@@ -312,9 +312,9 @@ class M_config
     doc["groupId"] = objectConfig.groupId;
     doc["activeLeds"] = objectConfig.activeLeds;
     doc["brightness"] = objectConfig.brightness;
-    doc["tempsRestant"] = objectConfig.tempsRestant;
-    doc["statutBombe"] = objectConfig.statutBombe;
-    doc["statutBombePrecedent"] = objectConfig.statutBombePrecedent;
+    //doc["tempsRestant"] = objectConfig.tempsRestant;
+    //doc["statutBombe"] = objectConfig.statutBombe;
+    //doc["statutBombePrecedent"] = objectConfig.statutBombePrecedent;
     doc["tempsInitial"] = objectConfig.tempsInitial;
     doc["intervalTemps"] = objectConfig.intervalTemps;
     doc["beepEvery"] = objectConfig.beepEvery;
@@ -346,10 +346,10 @@ class M_config
     JsonArray arrayActions = docActions.to<JsonArray>();
     for (uint8_t i=0;i<FILS_MAX;i++)
     {
-      arrayActions.add(objectConfig.actionFil[i]);
+      arrayActions.add(objectConfig.actionFilInit[i]);
     }
     
-    doc["actionFil"]=arrayActions;
+    doc["actionFilInit"]=arrayActions;
 
     // Serialize JSON to file
     if (serializeJson(doc, file) == 0) 
@@ -427,9 +427,9 @@ class M_config
   	objectConfig.groupId = 1;
   	objectConfig.activeLeds = 8;
     objectConfig.brightness = 80;
-    objectConfig.tempsRestant = 300;
-    objectConfig.statutBombe = 0;
-    objectConfig.statutBombePrecedent = 0;
+    //objectConfig.tempsRestant = 300;
+    //objectConfig.statutBombe = 0;
+    //objectConfig.statutBombePrecedent = 0;
     objectConfig.tempsInitial = 300;
     objectConfig.intervalTemps = 1000;
     objectConfig.beepEvery = 30;
@@ -441,7 +441,7 @@ class M_config
     
     for (uint8_t i=0;i<FILS_MAX;i++)
     {
-      objectConfig.actionFil[i]=0;
+      objectConfig.actionFilInit[i]=FIL_ALEATOIRE;
     }
     
     objectConfig.couleur1.red = 0;

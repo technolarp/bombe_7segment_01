@@ -1,0 +1,523 @@
+<!DOCTYPE HTML>
+<html>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<head>
+		<style>
+		table, td, th {border: 1px solid black;}
+		table {border-collapse:collapse; max-width: 1000px;}
+		td {text-align: center;}
+		
+		.colorButton {background-color:white; border: 2px solid; padding: 5px 5px;font-size:30px;border-radius: 50%%;}
+		</style>
+		
+		<title>%OBJECTNAME%    Back Office</title>
+	</head>
+	<script>
+  lastHeartBeat = Date.now();
+  
+  // leading zero convertor
+  const zeroPad = (num, places) => String(num).padStart(places, '0')
+
+  function checkHeartbeat()
+  {
+    if (Date.now() - lastHeartBeat > 10000)
+    {
+      document.getElementById("heartbeat").innerHTML = "&#x2620;"
+      console.log('Lost HeartBeat');
+    }
+  }
+
+  setInterval(checkHeartbeat, 10000);
+  
+  var gateway = `ws://${window.location.hostname}/ws`;
+  
+  var websocket;
+  window.addEventListener('load', onLoad);
+  
+  function initWebSocket() 
+  {
+    console.log('Trying to open a WebSocket connection...');
+    websocket = new WebSocket(gateway);
+    websocket.onopen    = onOpen;
+    websocket.onclose   = onClose;
+    websocket.onmessage = onMessage;
+  }
+  
+  function onOpen(event) 
+  {
+    console.log('Connection opened');
+    document.getElementById("ws_connect").innerHTML = "&#9989;";
+  }
+  
+  function onClose(event) 
+  {
+    console.log('Connection closed');
+    setTimeout(initWebSocket, 2000);
+    document.getElementById("ws_connect").innerHTML = "&#10060;";
+  }
+  
+  function onLoad(event) 
+  {
+    initWebSocket();
+  }
+  
+  function onMessage(event) 
+  {
+    var obj = JSON.parse(event.data);
+    console.log(event.data);
+    
+    if (obj.hasOwnProperty('uptime'))
+    {
+      document.getElementById("uptime").innerHTML = obj.uptime;
+      document.getElementById("heartbeat").innerHTML = "&#x2764;";  // full heart
+      lastHeartBeat = Date.now();
+    }
+	
+	if (obj.hasOwnProperty('objectId'))
+    {
+      document.getElementById("objectId").value = obj.objectId;
+    }
+	
+	if (obj.hasOwnProperty('groupId'))
+    {
+      document.getElementById("groupId").value = obj.groupId;
+    }
+	
+	if (obj.hasOwnProperty('objectName'))
+    {
+      document.getElementById("objectName").value = obj.objectName;
+    }
+		
+	if (obj.hasOwnProperty('activeLeds'))
+    {
+      document.getElementById("activeLeds").value = obj.activeLeds;  
+    }
+	
+	if (obj.hasOwnProperty('brightness'))
+    {
+      document.getElementById("brightness").value = obj.brightness;
+      document.getElementById("brightness2").innerHTML = obj.brightness;
+    }
+	
+	if (obj.hasOwnProperty('couleur1'))
+    {
+      newColor="#" + zeroPad(obj.couleur1[0].toString(16), 2) + zeroPad(obj.couleur1[1].toString(16), 2) + zeroPad(obj.couleur1[2].toString(16), 2);
+	  document.getElementById("couleur1").value = newColor;
+	  
+    }
+
+	if (obj.hasOwnProperty('couleur2'))
+    {
+      newColor="#" + zeroPad(obj.couleur2[0].toString(16), 2) + zeroPad(obj.couleur2[1].toString(16), 2) + zeroPad(obj.couleur2[2].toString(16), 2);
+	  document.getElementById("couleur2").value = newColor;
+    }
+	
+	if (obj.hasOwnProperty('tempsRestant'))
+    {
+      document.getElementById("tempsRestant").value = obj.tempsRestant;
+	  minutes=Math.floor(obj.tempsRestant/60);
+	  secondes=obj.tempsRestant%60;
+      document.getElementById("tempsRestant2").innerHTML = zeroPad(minutes,2) + ":" + zeroPad(secondes,2);
+    }
+	
+	if (obj.hasOwnProperty('tempsInitial'))
+    {
+      document.getElementById("tempsInitial").value = obj.tempsInitial;  
+    }
+	
+	if (obj.hasOwnProperty('intervalTemps'))
+    {
+      document.getElementById("intervalTemps").value = obj.intervalTemps;  
+    }
+		
+	if (obj.hasOwnProperty('beepEvery'))
+    {
+      document.getElementById("beepEvery").value = obj.beepEvery;  
+    }
+	
+	if (obj.hasOwnProperty('beepUnder'))
+    {
+      document.getElementById("beepUnder").value = obj.beepUnder;  
+    }
+	
+	if (obj.hasOwnProperty('nbFilActif'))
+    {
+      document.getElementById("nbFilActif").value = obj.nbFilActif;  
+    }
+	
+	if (obj.hasOwnProperty('nbFilExplosion'))
+    {
+      document.getElementById("nbFilExplosion").value = obj.nbFilExplosion;  
+    }
+	
+	if (obj.hasOwnProperty('nbFilSafe'))
+    {
+      document.getElementById("nbFilSafe").value = obj.nbFilSafe;  
+    }
+	
+	if (obj.hasOwnProperty('nbFilDelai'))
+    {
+      document.getElementById("nbFilDelai").value = obj.nbFilDelai;  
+    }
+	
+	if (obj.hasOwnProperty('actionFilInit'))
+    {
+      for (let i = 0; i < 8; i++)
+	  {
+		j=i+1;
+		filToChange = "filInit" + j;
+		document.getElementById(filToChange).value = obj.actionFilInit[i];
+	  }
+    }
+	
+	function getFilValue(x)
+	{
+		switch(arguments[0]) 
+		{
+		  case 0:
+			return "NEUTRE";
+			break;
+			
+		  case 1:
+			return "SAFE";
+			break;
+			
+		  case 2:
+			return "DELAI";
+			break;
+			
+		  case 3:
+			return "EXPLOSION";
+			break;
+			
+		  case 4:
+			return "ALEATOIRE";
+			break;
+		
+		  case 5:
+			return "COUPE";
+			break;
+			
+			
+		  default:
+			return "NEUTRE";
+		} 
+		
+	}
+	
+	if (obj.hasOwnProperty('actionFil'))
+    {
+      for (let i = 0; i < 8; i++)
+	  {
+		j=i+1;
+		filToChange = "fil" + j;
+		document.getElementById(filToChange).innerHTML = getFilValue(obj.actionFil[i]);
+	  }
+    }
+	
+	if (obj.hasOwnProperty('apName'))
+    {
+      document.getElementById("apName").value = obj.apName;
+    }
+	
+	if (obj.hasOwnProperty('apPassword') && obj.apPassword != "")
+    {
+      document.getElementById("apPassword").value = obj.apPassword;
+    }
+	
+	if (obj.hasOwnProperty('apIP'))
+    {
+      document.getElementById("apIP").value = obj.apIP[0] + "." + obj.apIP[1] + "." + obj.apIP[2] + "." + obj.apIP[3];
+    }
+	
+	if (obj.hasOwnProperty('apNetMsk'))
+    {
+      document.getElementById("apNetMsk").value = obj.apNetMsk[0] + "." + obj.apNetMsk[1] + "." + obj.apNetMsk[2] + "." + obj.apNetMsk[3];
+    }
+  }
+  
+  function sendNewValue(name, val, string) 
+  {
+    if (string)
+	{
+		console.log("{\"new_"+ name + "\":\"" + val + "\"}");
+		websocket.send("{\"new_"+ name + "\":\"" + val + "\"}");
+	}
+	else
+	{
+		console.log("{\"new_"+ name + "\":" + val + "}");
+		websocket.send("{\"new_"+ name + "\":" + val + "}");
+	}
+	
+	if (name=="brightness")
+    {
+      document.getElementById("brightness2").innerHTML = val;
+    }
+	
+	if (name=="delaiBlocage")
+    {
+      document.getElementById("delaiBlocage").innerHTML = val;
+    }
+  }
+  
+  
+  
+  </script>  
+	<body>
+	<table width=600>
+    <tr>
+      <td colspan="2"><h2>%OBJECTNAME% Back Office</h2></td>
+    </tr>
+    <tr>
+      <td>Object name </td>
+      <td><input type="text" id="objectName" name="objectName" onchange="sendNewValue('objectName',document.getElementById('objectName').value, true);"> &nbsp; &nbsp; &nbsp; &nbsp; 20 characters max</td>
+    </tr>
+    <tr>
+      <td>Object ID </td>
+      <td><input type="number" id="objectId" name="objectId" min="1" max="1000" onchange="sendNewValue('objectId',document.getElementById('objectId').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 1000</td>
+    </tr>
+	<tr>
+      <td>Group ID </td>
+      <td><input type="number" id="groupId" name="groupId" min="1" max="1000" onchange="sendNewValue('groupId',document.getElementById('groupId').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 1000</td>
+    </tr>
+    <tr>
+      <td>ActiveLeds </td>
+      <td><input type="number" id="activeLeds" name="activeLeds" min="1" max="%MAXLEDS%" onchange="sendNewValue('activeLeds',document.getElementById('activeLeds').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp;  1 - %MAXLEDS%</td>
+    </tr>
+    <tr>
+      <td>Brightness : <span id="brightness2"></span></td>
+      <td><input class="enabled" id="brightness" name="brightness" type="range" min="0" max="255" step="5" onChange="sendNewValue('brightness',document.getElementById('brightness').value, false);"></td>
+    </tr>
+	<tr>
+      <td>Couleur 1</td>
+      <td><input type="color" id="couleur1" name="couleur1" onchange="sendNewValue('couleur1',document.getElementById('couleur1').value, true);">
+    </tr>
+	<tr>
+      <td>Couleur 2</td>
+      <td><input type="color" id="couleur2" name="couleur2" onchange="sendNewValue('couleur2',document.getElementById('couleur2').value, true);">
+    </tr>
+	</table>
+	<table width=600>
+	<tr>
+      <td>Temps restant : <span id="tempsRestant2"></span></td>
+      <td><input class="enabled" id="tempsRestant" name="tempsRestant" type="range" min="0" max="5940" step="1" onChange="sendNewValue('tempsRestant',document.getElementById('tempsRestant').value, false);"></td>
+    </tr>
+	<tr>
+      <td>statuts Bombe</td>
+      <td>
+		<button onclick="sendNewValue('statutBombe',0, false);">ALLUMEE</button>
+		<button onclick="sendNewValue('statutBombe',1, false);">ACTIVE</button>
+		<button onclick="sendNewValue('statutBombe',2, false);">EXPLOSION</button>
+		<button onclick="sendNewValue('statutBombe',3, false);">EXPLOSEE</button>
+		<button onclick="sendNewValue('statutBombe',4, false);">SAFE</button>
+		<button onclick="sendNewValue('statutBombe',5, false);">PAUSE</button>
+	  </td>
+    </tr>
+	<tr>
+      <td>tempsInitial </td>
+      <td><input type="number" id="tempsInitial" name="tempsInitial" min="0" max="5940" onchange="sendNewValue(this.name,this.value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 5940</td>
+    </tr>
+	<tr>
+      <td>intervalTemps </td>
+      <td><input type="number" id="intervalTemps" name="intervalTemps" min="1" max="10000" onchange="sendNewValue('intervalTemps',document.getElementById('intervalTemps').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 10000</td>
+    </tr>
+	<tr>
+      <td>beepEvery </td>
+      <td><input type="number" id="beepEvery" name="beepEvery" min="0" max="60" onchange="sendNewValue('beepEvery',document.getElementById('beepEvery').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 60</td>
+    </tr>
+	<tr>
+      <td>beepUnder </td>
+      <td><input type="number" id="beepUnder" name="beepUnder" min="1" max="60" onchange="sendNewValue('beepUnder',document.getElementById('beepUnder').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 60</td>
+    </tr>
+	<tr>
+      <td>nbFilActif </td>
+      <td><input type="number" id="nbFilActif" name="nbFilActif" min="0" max="8" onchange="sendNewValue('nbFilActif',document.getElementById('nbFilActif').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+    </tr>
+	<tr>
+      <td>nbFilExplosion </td>
+      <td><input type="number" id="nbFilExplosion" name="nbFilExplosion" min="0" max="8" onchange="sendNewValue('nbFilExplosion',document.getElementById('nbFilExplosion').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+    </tr>
+	<tr>
+      <td>nbFilSafe </td>
+      <td><input type="number" id="nbFilSafe" name="nbFilSafe" min="0" max="8" onchange="sendNewValue('nbFilSafe',document.getElementById('nbFilSafe').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+    </tr>
+	<tr>
+      <td>nbFilDelai </td>
+      <td><input type="number" id="nbFilDelai" name="nbFilDelai" min="0" max="8" onchange="sendNewValue('nbFilDelai',document.getElementById('nbFilDelai').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+    </tr>
+	<tr>
+      <td>actionFil </td>
+      <td>
+		<table>
+			<tr>
+				<td>fil 1</td>
+				<td>fil 2</td>
+				<td>fil 3</td>
+				<td>fil 4</td>
+			</tr>
+			<tr>
+				<td>
+				<select name="filInit1" id="filInit1" onchange="sendNewValue('actionFilInit','[0,' + this.value + ']', false);">
+				<option value="0">NEUTRE</option>
+				<option value="1">SAFE</option>
+				<option value="2">DELAI</option>
+				<option value="3">EXPLOSION</option>
+				<option value="4">ALEATOIRE</option>
+				<option value="5">COUPE</option>
+				</select>
+				</td>
+				<td>
+				<select name="filInit2" id="filInit2" onchange="sendNewValue('actionFilInit','[1,' + this.value + ']', false);">
+				<option value="0">NEUTRE</option>
+				<option value="1">SAFE</option>
+				<option value="2">DELAI</option>
+				<option value="3">EXPLOSION</option>
+				<option value="4">ALEATOIRE</option>
+				<option value="5">COUPE</option>
+				</select>
+				</td>
+				<td>
+				<select name="filInit3" id="filInit3" onchange="sendNewValue('actionFilInit','[2,' + this.value + ']', false);">
+				<option value="0">NEUTRE</option>
+				<option value="1">SAFE</option>
+				<option value="2">DELAI</option>
+				<option value="3">EXPLOSION</option>
+				<option value="4">ALEATOIRE</option>
+				<option value="5">COUPE</option>
+				</select>
+				</td>
+				<td>
+				<select name="filInit4" id="filInit4" onchange="sendNewValue('actionFilInit','[3,' + this.value + ']', false);">
+				<option value="0">NEUTRE</option>
+				<option value="1">SAFE</option>
+				<option value="2">DELAI</option>
+				<option value="3">EXPLOSION</option>
+				<option value="4">ALEATOIRE</option>
+				<option value="5">COUPE</option>
+				</select>
+				</td>
+			</tr>
+			
+			<tr>
+				<td><span id="fil1"></span></td>
+				<td><span id="fil2"></span></td>
+				<td><span id="fil3"></span></td>
+				<td><span id="fil4"></span></td>
+			</tr>
+			<tr>
+				<td colspan="4">&nbsp;</td>
+			</tr>
+			<tr>
+				<td>fil 5</td>
+				<td>fil 6</td>
+				<td>fil 7</td>
+				<td>fil 8</td>
+			</tr>
+			<tr>
+				<td>
+				<select name="filInit5" id="filInit5" onchange="sendNewValue('actionFilInit','[4,' + this.value + ']', false);">
+				<option value="0">NEUTRE</option>
+				<option value="1">SAFE</option>
+				<option value="2">DELAI</option>
+				<option value="3">EXPLOSION</option>
+				<option value="4">ALEATOIRE</option>
+				<option value="5">COUPE</option>
+				</select>
+				</td>
+				<td>
+				<select name="filInit6" id="filInit6" onchange="sendNewValue('actionFilInit','[5,' + this.value + ']', false);">
+				<option value="0">NEUTRE</option>
+				<option value="1">SAFE</option>
+				<option value="2">DELAI</option>
+				<option value="3">EXPLOSION</option>
+				<option value="4">ALEATOIRE</option>
+				<option value="5">COUPE</option>
+				</select>
+				</td>
+				<td>
+				<select name="filInit7" id="filInit7" onchange="sendNewValue('actionFilInit','[6,' + this.value + ']', false);">
+				<option value="0">NEUTRE</option>
+				<option value="1">SAFE</option>
+				<option value="2">DELAI</option>
+				<option value="3">EXPLOSION</option>
+				<option value="4">ALEATOIRE</option>
+				<option value="5">COUPE</option>
+				</select>
+				</td>
+				<td>
+				<select name="filInit8" id="filInit8" onchange="sendNewValue('actionFilInit','[7,' + this.value + ']', false);">
+				<option value="0">NEUTRE</option>
+				<option value="1">SAFE</option>
+				<option value="2">DELAI</option>
+				<option value="3">EXPLOSION</option>
+				<option value="4">ALEATOIRE</option>
+				<option value="5">COUPE</option>
+				</select>
+				</td>
+			</tr>
+			<tr>
+				<td><span id="fil5"></span></td>
+				<td><span id="fil6"></span></td>
+				<td><span id="fil7"></span></td>
+				<td><span id="fil8"></span></td>
+			</tr>
+		</table>		
+	  </td>
+    </tr>
+	</table>
+	<table width=600>
+	<tr>
+      <td colspan="2"><h2>%APNAME% Network config</h2></td>
+    </tr>
+    <tr>
+      <td>AP name </td>
+      <td><input type="text" id="apName" name="apName" onchange="sendNewValue('apName',document.getElementById('apName').value, true);"> &nbsp; &nbsp; &nbsp; &nbsp; 20 UPPERCASE characters max</td>
+    </tr>
+	<tr>
+      <td>AP password </td>
+      <td><input type="text" id="apPasword" name="apPasword" onchange="sendNewValue('apPasword',document.getElementById('apPasword').value, true);"> &nbsp; &nbsp; &nbsp; &nbsp; vide ou min 8 - max 20 characters</td>
+    </tr>
+	<tr>
+      <td>AP IP </td>
+      <td><input type="text" id="apIP" name="apIP" onchange="sendNewValue('apIP',document.getElementById('apIP').value, true);"> &nbsp; !! restart obligatoire apres modif !!</td>
+    </tr>
+	<tr>
+      <td>AP netmask </td>
+      <td><input type="text" id="apNetMsk" name="apNetMsk" onchange="sendNewValue('apNetMsk',document.getElementById('apNetMsk').value, true);"> &nbsp; !! restart obligatoire apres modif !!</td>
+    </tr>
+	<tr>
+      <td>WebSocket Connexion </td>
+      <td><span id="ws_connect">&#10060;</span></td>
+    </tr>
+    <tr>
+      <td>Uptime </td>
+      <td><span id="uptime"></span></td>
+    </tr>
+    <tr>
+      <td>Heartbeat </td>
+      <td ><span style="color:red; font-weight:bold; font-size:20px;" id="heartbeat">&#x2620;</span></td>
+    </tr>
+	<tr>
+      <td>BLINK esp8266</td>
+      <td><button onclick="sendNewValue('blink',1, false);">BLINK</button></td>
+    </tr>
+	<tr>
+      <td>Default Object config</td>
+      <td><button onclick="sendNewValue('defaultObjectConfig',1, false);">DEFAULT OBJECT CONFIG</button></td>
+    </tr>
+	<tr>
+      <td>Default Network config</td>
+      <td><button onclick="sendNewValue('defaultNetworkConfig',1, false);">DEFAULT NETWORK CONFIG</button></td>
+    </tr>
+	<tr>
+      <td>Refresh config</td>
+      <td><button onclick="sendNewValue('refresh',1);">REFRESH</button></td>
+    </tr>
+	<tr>
+      <td>RESTART esp8266</td>
+      <td><button onclick="sendNewValue('restart',1);">RESTART</button></td>
+    </tr>
+	</table>	
+	</body>
+</html>
