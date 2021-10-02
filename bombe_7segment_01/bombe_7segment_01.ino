@@ -28,6 +28,11 @@
    ----------------------------------------------------------------------------
 */
 
+/*
+html - intervalle temsp en s + float
+
+*/
+
 #include <Arduino.h>
 
 // WIFI
@@ -82,7 +87,8 @@ enum {
   BOMBE_EXPLOSEE = 3,
   BOMBE_SAFE = 4,
   BOMBE_PAUSE = 5,
-  BOMBE_BLINK = 6
+  BOMBE_UNPAUSE = 6,
+  BOMBE_BLINK = 7
 };
 
 uint8_t statutBombe = BOMBE_ALLUMEE;
@@ -187,7 +193,7 @@ void setup()
   */
   // CLIENT MODE POUR DEBUG
   const char* ssid = "MYDEBUG";
-  const char* password = "******";
+  const char* password = "pppppppppppp";
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
@@ -220,10 +226,7 @@ void setup()
   previousMillisHB = currentMillisHB;
   intervalHB = 5000;
 
-  // REFRESH
-  previousMillisRefresh = currentMillisHB;
-  currentMillisRefresh = currentMillisHB;
-  intervalRefresh = 300;
+  
 
   // double point
   ul_PreviousMillisDoublePoint = millis();
@@ -293,6 +296,11 @@ void loop()
       bombePause();
       break;
 
+      case BOMBE_UNPAUSE:
+      // la bombe reprend son comtpe a rebours
+      bombeUnpause();
+      break;
+
       case BOMBE_BLINK:
       // blink leds
       bombeBlink();
@@ -341,6 +349,11 @@ void bombeAllumee()
     
     tempsInitialTmp=aConfig.objectConfig.tempsInitial;
     tempsRestant=tempsInitialTmp;
+
+    // REFRESH
+    currentMillisRefresh = millis();
+    previousMillisRefresh = currentMillisRefresh;
+    intervalRefresh = 300;
 
     Serial.print(F("BOMBE ALLUMEE"));
     Serial.println();
@@ -392,6 +405,7 @@ void bombeAllumee()
   {
     // la bombe est maintenant active
     statutBombe = BOMBE_ACTIVE;
+    sendStatutBombe();
         
     uneFois = true;
     
@@ -404,6 +418,9 @@ void bombeAllumee()
   {
     previousMillisRefresh = currentMillisRefresh;
     a7segmentDisplay.setBlinkAffichage(!a7segmentDisplay.getBlinkAffichage());
+
+    // on allume les leds verte
+    aFastled->allLedOn(aConfig.objectConfig.couleur1);
   }
   
   // mettre a jour l affichage
@@ -425,6 +442,10 @@ void bombeActive()
     tempsRestant=tempsInitialTmp;
     previousMillisRefresh = millis();
     a7segmentDisplay.setBlinkAffichage(false);
+    
+    // REFRESH
+    currentMillisRefresh = millis();
+    previousMillisRefresh = currentMillisRefresh;
     intervalRefresh=1000;
 
     // affecter les fils aleatoires
@@ -445,6 +466,7 @@ void bombeActive()
     // le compte a rebours est terminé !!
     uneFois = true;
     statutBombe = BOMBE_EXPLOSION;
+    sendStatutBombe();
   }
   else
   {
@@ -482,6 +504,9 @@ void bombeActive()
     {
       ul_PreviousMillisDoublePoint = ul_CurrentMillisDoublePoint;
       a7segmentDisplay.setDoublePoint(!a7segmentDisplay.getDoublePoint());
+
+      // on allume les leds rouge
+      aFastled->allLedOn(aConfig.objectConfig.couleur2);
     }
 
     // mettre a jour l affichage
@@ -514,12 +539,14 @@ void bombeExplosion()
       aFastled->startAnimBlink(50, 100, aConfig.objectConfig.couleur2, aConfig.objectConfig.activeLeds);
 
       a7segmentDisplay.setBlinkAffichage(false);
-      intervalRefresh=200;
     }
   }
 
   // on blink l'afficheur 7 segment
   currentMillisRefresh = millis();
+  previousMillisRefresh = currentMillisRefresh;
+  intervalRefresh=200;
+    
   if(currentMillisRefresh - previousMillisRefresh > intervalRefresh)
   {
     previousMillisRefresh = currentMillisRefresh;
@@ -535,6 +562,7 @@ void bombeExplosion()
   
     // changer le statut
     statutBombe = BOMBE_EXPLOSEE;
+    sendStatutBombe();
   }
 }
 
@@ -554,16 +582,13 @@ void bombeExplosee()
 
 void bombePause()
 {
-  if (uneFois)
-  {
-    uneFois = false;
-
-    // save statut
-    // unpause
-  }
-
+  // on empeche le temsp de progresser
   previousMillisRefresh = millis();
-  
+}
+
+void bombeUnpause()
+{
+    // rien a faire
 }
 
 void bombeSafe()
@@ -597,6 +622,7 @@ void bombeBlink()
 
     // retour au statut precedent
     statutBombe = statutBombePrecedent;
+    sendStatutBombe();
   }
 }
 
@@ -634,6 +660,7 @@ void checkFilCoupe()
             // le bomb est safe
             buzzer->shortBeep();
             statutBombe = BOMBE_SAFE;
+            sendStatutBombe();
             uneFois = true;
             Serial.print("fil safe: ");
             Serial.println(i);
@@ -644,6 +671,7 @@ void checkFilCoupe()
         case FIL_EXPLOSION:
           // detonate the bomb
           statutBombe=BOMBE_EXPLOSION;
+          sendStatutBombe();
           actionFil[i]=FIL_COUPE;
           uneFois = true;
           Serial.print("fil boom: ");
@@ -808,6 +836,15 @@ void sendTempsRestant()
   ws.textAll(toSend);
 }
 
+void sendStatutBombe()
+{
+  String toSend = "{\"statutBombe\":";
+  toSend+= statutBombe;
+  toSend+= "}";
+
+  ws.textAll(toSend);
+}
+
 void convertStrToRGB(String source, uint8_t* r, uint8_t* g, uint8_t* b)
 {
   uint32_t  number = (uint32_t) strtol( &source[1], NULL, 16);
@@ -870,6 +907,8 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
         // send volatile info
         sendActionFil();
         sendTempsRestant();
+        sendUptime();
+        sendStatutBombe();
     
         break;
         
@@ -996,15 +1035,41 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
         if (doc.containsKey("new_statutBombe"))
         {
           uint16_t tmpValeur = doc["new_statutBombe"];
-          statutBombe = checkValeur(tmpValeur,0,5);
+          statutBombe = checkValeur(tmpValeur,0,7);
           
           uneFois=true;
 
           writeObjectConfig = true;
           sendObjectConfig = true;
+
+          sendStatutBombe();
         }
 
-        // statutBombePrecedent = statutBombe;
+        if ( doc.containsKey("new_pause") && doc["new_pause"]==1 )
+        {
+          Serial.println(F("PAUSE"));
+          
+          if (statutBombe == BOMBE_ACTIVE)
+          {
+            statutBombePrecedent = statutBombe;
+            statutBombe = BOMBE_PAUSE;
+          }
+
+          sendStatutBombe();
+        }
+
+        if ( doc.containsKey("new_unpause") && doc["new_unpause"]==1 )
+        {
+          Serial.println(F("UNPAUSE"));
+          
+          if (statutBombePrecedent == BOMBE_ACTIVE)
+          {
+            statutBombe = statutBombePrecedent;
+            previousMillisRefresh = millis();
+          }
+
+          sendStatutBombe();
+        }
 
         if (doc.containsKey("new_couleur1")) 
         {
@@ -1126,6 +1191,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           blinkUneFois = true;
           statutBombePrecedent = statutBombe;
           statutBombe = BOMBE_BLINK;
+          sendStatutBombe();
         }
   
         // modif config

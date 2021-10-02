@@ -202,8 +202,53 @@
 			
 		  default:
 			return "NEUTRE";
-		} 
+		}
+	}
+	
+	if (obj.hasOwnProperty('statutBombe'))
+    {
+      document.getElementById("statutBombe2").innerHTML = getStatutValue(obj.statutBombe);
+    }
+	
+	function getStatutValue(x)
+	{
+		switch(arguments[0]) 
+		{
+		  case 0:
+			return "ALLUMEE";
+			break;
+			
+		  case 1:
+			return "ACTIVE";
+			break;
+			
+		  case 2:
+			return "EXPLOSION";
+			break;
+			
+		  case 3:
+			return "EXPLOSEE";
+			break;
+			
+		  case 4:
+			return "SAFE";
+			break;
 		
+		  case 5:
+			return "PAUSE";
+			break;
+			
+		  case 6:
+			return "PAUSE";
+			break;
+			
+		  case 7:
+			return "BLINK";
+			break;
+			
+		  default:
+			return "";
+		}
 	}
 	
 	if (obj.hasOwnProperty('actionFil'))
@@ -304,14 +349,16 @@
       <td><input class="enabled" id="tempsRestant" name="tempsRestant" type="range" min="0" max="5940" step="1" onChange="sendNewValue('tempsRestant',document.getElementById('tempsRestant').value, false);"></td>
     </tr>
 	<tr>
-      <td>statuts Bombe</td>
+      <td>statuts Bombe : <br><span id="statutBombe2"></span></td>
       <td>
 		<button onclick="sendNewValue('statutBombe',0, false);">ALLUMEE</button>
 		<button onclick="sendNewValue('statutBombe',1, false);">ACTIVE</button>
 		<button onclick="sendNewValue('statutBombe',2, false);">EXPLOSION</button>
 		<button onclick="sendNewValue('statutBombe',3, false);">EXPLOSEE</button>
 		<button onclick="sendNewValue('statutBombe',4, false);">SAFE</button>
-		<button onclick="sendNewValue('statutBombe',5, false);">PAUSE</button>
+		<br>
+		<button onclick="sendNewValue('unpause',1, false);">PREPRENDRE</button>
+		<button onclick="sendNewValue('pause',1, false);">PAUSE</button>
 	  </td>
     </tr>
 	<tr>
