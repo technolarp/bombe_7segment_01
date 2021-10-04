@@ -28,10 +28,6 @@
    ----------------------------------------------------------------------------
 */
 
-/*
-html - intervalle temsp en s + float
-
-*/
 
 #include <Arduino.h>
 
@@ -74,9 +70,10 @@ M_buzzer* buzzer;
 int16_t tempsRestant;
 bool uneFois = true;
 bool blinkUneFois = true;
+bool explosionUneFois = true;
 bool blinkMinutesOuSecondes = false;
 
-int16_t tempsInitialTmp;
+//int16_t tempsInitialTmp;
 uint8_t actionFil[FILS_MAX];
 
 // STATUTS
@@ -193,7 +190,7 @@ void setup()
   */
   // CLIENT MODE POUR DEBUG
   const char* ssid = "MYDEBUG";
-  const char* password = "pppppppppppp";
+  const char* password = "pppppppp";
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
@@ -225,8 +222,6 @@ void setup()
   currentMillisHB = millis();
   previousMillisHB = currentMillisHB;
   intervalHB = 5000;
-
-  
 
   // double point
   ul_PreviousMillisDoublePoint = millis();
@@ -320,7 +315,7 @@ void loop()
     // envoyer l'uptime
     sendUptime();
         
-    Serial.println("heartbeat");
+    //Serial.println("heartbeat");
   }
 }
 /*
@@ -346,9 +341,20 @@ void bombeAllumee()
 
     // on allume les leds verte
     aFastled->allLedOn(aConfig.objectConfig.couleur1);
+
+    a7segmentDisplay.setDoublePoint(false);
     
-    tempsInitialTmp=aConfig.objectConfig.tempsInitial;
-    tempsRestant=tempsInitialTmp;
+    // affecter les fils aleatoires
+    affecteFilsAleatoires();
+    sendActionFil();
+    
+    Serial.print("AFFECTATION:  ");
+    for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+    {
+      Serial.print(actionFil[i]);
+      Serial.print(" ");
+    }
+    Serial.println(" ");
 
     // REFRESH
     currentMillisRefresh = millis();
@@ -365,15 +371,15 @@ void bombeAllumee()
   {
     if (a7segmentDisplay.getBlinkMinutesOuSecondes())
     {
-      tempsInitialTmp+=60;
+      aConfig.objectConfig.tempsInitial+=60;
     }
     else
     {
-      tempsInitialTmp+=1;
+      aConfig.objectConfig.tempsInitial+=1;
     }
     
     // on ne depasse pas 99 minutes
-    tempsInitialTmp=min<int16_t>(99*60, tempsInitialTmp);
+    aConfig.objectConfig.tempsInitial=min<int16_t>(99*60, aConfig.objectConfig.tempsInitial);
   }
 
   // BOUTON_3  appuyé, on diminue le temps
@@ -381,15 +387,15 @@ void bombeAllumee()
   {
     if (a7segmentDisplay.getBlinkMinutesOuSecondes())
     {
-      tempsInitialTmp-=60;
+      aConfig.objectConfig.tempsInitial-=60;
     }
     else
     {
-      tempsInitialTmp-=1;
+      aConfig.objectConfig.tempsInitial-=1;
     }
     
     // on ne depasse pas 0 minutes
-    tempsInitialTmp=max<int16_t>(0, tempsInitialTmp);
+    aConfig.objectConfig.tempsInitial=max<int16_t>(0, aConfig.objectConfig.tempsInitial);
   }
 
   // check si switch
@@ -410,7 +416,7 @@ void bombeAllumee()
     uneFois = true;
     
     // ecrire la nouvelle config
-    //aConfig.writeObjectConfig("/config/objectconfig.txt");
+    aConfig.writeObjectConfig("/config/objectconfig.txt");
   }
 
   currentMillisRefresh = millis();
@@ -424,7 +430,7 @@ void bombeAllumee()
   }
   
   // mettre a jour l affichage
-  a7segmentDisplay.showTempsRestant(tempsInitialTmp);
+  a7segmentDisplay.showTempsRestant(aConfig.objectConfig.tempsInitial);
 }
 
 void bombeActive()
@@ -439,7 +445,7 @@ void bombeActive()
     Serial.print(F("BOMBE ACTIVE"));
     Serial.println();
 
-    tempsRestant=tempsInitialTmp;
+    tempsRestant=aConfig.objectConfig.tempsInitial;
     previousMillisRefresh = millis();
     a7segmentDisplay.setBlinkAffichage(false);
     
@@ -447,24 +453,13 @@ void bombeActive()
     currentMillisRefresh = millis();
     previousMillisRefresh = currentMillisRefresh;
     intervalRefresh=1000;
-
-    // affecter les fils aleatoires
-    affecteFilsAleatoires();
-    sendActionFil();
-    
-    Serial.print("AFFECTATION:  ");
-    for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
-    {
-      Serial.print(actionFil[i]);
-      Serial.print(" ");
-    }
-    Serial.println(" ");
   }
 
   if ( tempsRestant == -1 )
   {
     // le compte a rebours est terminé !!
     uneFois = true;
+    explosionUneFois = true;
     statutBombe = BOMBE_EXPLOSION;
     sendStatutBombe();
   }
@@ -528,9 +523,9 @@ void bombeExplosion()
     Serial.println();
 
     // on demarre l'animation led
-    if (!aFastled->isEnabled() && blinkUneFois)
+    if (!aFastled->isEnabled() && explosionUneFois)
     {
-      blinkUneFois = false;
+      explosionUneFois = false;
 
       // on buzze 5 second
       buzzer->beep(800, 5000, 2);
@@ -659,8 +654,7 @@ void checkFilCoupe()
           {
             // le bomb est safe
             buzzer->shortBeep();
-            statutBombe = BOMBE_SAFE;
-            sendStatutBombe();
+            statutBombe = BOMBE_SAFE;            
             uneFois = true;
             Serial.print("fil safe: ");
             Serial.println(i);
@@ -671,7 +665,6 @@ void checkFilCoupe()
         case FIL_EXPLOSION:
           // detonate the bomb
           statutBombe=BOMBE_EXPLOSION;
-          sendStatutBombe();
           actionFil[i]=FIL_COUPE;
           uneFois = true;
           Serial.print("fil boom: ");
@@ -683,6 +676,7 @@ void checkFilCoupe()
         break;
       }
 
+      sendStatutBombe();
       sendActionFil();
     }    
   }
@@ -809,6 +803,7 @@ void sendUptime()
   toSend+= "\"}";
 
   ws.textAll(toSend);
+  Serial.println(toSend);
 }
 
 void sendActionFil()
@@ -1013,9 +1008,24 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           
           currentMillisRefresh = millis();
           previousMillisRefresh = currentMillisRefresh;
-          a7segmentDisplay.showTempsRestant(max<int16_t>(0,tempsRestant));
+          
+          if (statutBombe == BOMBE_ACTIVE)
+          {
+            a7segmentDisplay.showTempsRestant(max<int16_t>(0,tempsRestant));
+          }          
           sendTempsRestant();
         }
+
+        if (doc.containsKey("new_intervalTemps"))
+        {
+          uint16_t tmpValeur = doc["new_intervalTemps"];
+          aConfig.objectConfig.intervalTemps = checkValeur(tmpValeur,0,10000);
+          
+          uneFois=true;
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }        
 
         if (doc.containsKey("new_actionFilInit")) 
         {
@@ -1038,6 +1048,11 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           statutBombe = checkValeur(tmpValeur,0,7);
           
           uneFois=true;
+
+          if (statutBombe == BOMBE_EXPLOSION)
+          {
+            explosionUneFois=true;
+          }
 
           writeObjectConfig = true;
           sendObjectConfig = true;
@@ -1089,6 +1104,33 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           writeObjectConfig = true;
           sendObjectConfig = true;
           uneFois=true;
+        }
+
+        if (doc.containsKey("new_beepEvery"))
+        {
+          uint16_t tmpValeur = doc["new_beepEvery"];
+          aConfig.objectConfig.beepEvery = checkValeur(tmpValeur,0,60);
+                    
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        if (doc.containsKey("new_beepUnder"))
+        {
+          uint16_t tmpValeur = doc["new_beepUnder"];
+          aConfig.objectConfig.beepUnder = checkValeur(tmpValeur,0,60);
+                    
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        if (doc.containsKey("new_tempsInitial"))
+        {
+          uint16_t tmpValeur = doc["new_tempsInitial"];
+          aConfig.objectConfig.tempsInitial = checkValeur(tmpValeur,0,5940);
+                    
+          writeObjectConfig = true;
+          sendObjectConfig = true;
         }
           
         // modif network config

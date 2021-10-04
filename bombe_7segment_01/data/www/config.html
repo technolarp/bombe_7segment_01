@@ -124,12 +124,16 @@
 	
 	if (obj.hasOwnProperty('tempsInitial'))
     {
-      document.getElementById("tempsInitial").value = obj.tempsInitial;  
+      minutes=Math.floor(obj.tempsInitial/60);
+	  secondes=obj.tempsInitial%60;
+	  document.getElementById("tempsInitialMinutes").value = zeroPad(minutes,2);
+	  document.getElementById("tempsInitialSecondes").value = zeroPad(secondes,2);
     }
 	
 	if (obj.hasOwnProperty('intervalTemps'))
     {
-      document.getElementById("intervalTemps").value = obj.intervalTemps;  
+      x = obj.intervalTemps / 1000;
+	  document.getElementById("intervalTemps").value = x.toFixed(1);  
     }
 		
 	if (obj.hasOwnProperty('beepEvery'))
@@ -347,7 +351,15 @@
 	<table width=600>
 	<tr>
       <td>Temps restant : <span id="tempsRestant2"></span></td>
-      <td><input class="enabled" id="tempsRestant" name="tempsRestant" type="range" min="0" max="5940" step="1" onChange="sendNewValue('tempsRestant',document.getElementById('tempsRestant').value, false);"></td>
+      <td>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-1, false);">-1</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-5, false);">-5</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-60, false);">-60</button>
+		<input class="enabled" id="tempsRestant" name="tempsRestant" type="range" min="0" max="5940" step="1" onChange="sendNewValue('tempsRestant',document.getElementById('tempsRestant').value, false);">
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+1, false);">+1</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+5, false);">+5</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+60, false);">+60</button>
+	  </td>
     </tr>
 	<tr>
       <td>statuts Bombe : <br><span id="statutBombe2"></span></td>
@@ -364,19 +376,21 @@
     </tr>
 	<tr>
       <td>tempsInitial </td>
-      <td><input type="number" id="tempsInitial" name="tempsInitial" min="0" max="5940" onchange="sendNewValue(this.name,this.value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 5940</td>
+      <td><input type="number" id="tempsInitialMinutes" name="tempsInitialMinutes" min="0" max="99" onchange="sendNewValue('tempsInitial',parseInt(this.value)*60+parseInt(document.getElementById('tempsInitialSecondes').value), false);">
+	  &nbsp; :&nbsp;
+	  <input type="number" id="tempsInitialSecondes" name="tempsInitialSecondes" min="0" max="60" onchange="sendNewValue('tempsInitial',parseInt(document.getElementById('tempsInitialMinutes').value)*60+parseInt(this.value), false);"> &nbsp;  &nbsp; &nbsp; &nbsp; 00:00 - 99:00</td>
     </tr>
 	<tr>
       <td>intervalTemps </td>
-      <td><input type="number" id="intervalTemps" name="intervalTemps" min="1" max="10000" onchange="sendNewValue('intervalTemps',document.getElementById('intervalTemps').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 10000</td>
+      <td><input type="number" id="intervalTemps" name="intervalTemps" min="0.1" max="10" step="0.1" onchange="sendNewValue('intervalTemps',document.getElementById('intervalTemps').value*1000, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0.1 - 10 s</td>
     </tr>
 	<tr>
       <td>beepEvery </td>
-      <td><input type="number" id="beepEvery" name="beepEvery" min="0" max="60" onchange="sendNewValue('beepEvery',document.getElementById('beepEvery').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 60</td>
+      <td><input type="number" id="beepEvery" name="beepEvery" min="0" max="60" onchange="sendNewValue('beepEvery',document.getElementById('beepEvery').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 60 s</td>
     </tr>
 	<tr>
       <td>beepUnder </td>
-      <td><input type="number" id="beepUnder" name="beepUnder" min="1" max="60" onchange="sendNewValue('beepUnder',document.getElementById('beepUnder').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 60</td>
+      <td><input type="number" id="beepUnder" name="beepUnder" min="0" max="60" onchange="sendNewValue('beepUnder',document.getElementById('beepUnder').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 60 s</td>
     </tr>
 	<tr>
       <td>nbFilActif </td>
