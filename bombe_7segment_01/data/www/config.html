@@ -7,8 +7,6 @@
 		table, td, th {border: 1px solid black;}
 		table {border-collapse:collapse; max-width: 1000px;}
 		td {text-align: center;}
-		
-		.colorButton {background-color:white; border: 2px solid; padding: 5px 5px;font-size:30px;border-radius: 50%%;}
 		</style>
 		
 		<title>%OBJECTNAME%    Back Office</title>
@@ -31,7 +29,6 @@
   setInterval(checkHeartbeat, 10000);
   
   var gateway = `ws://${window.location.hostname}/ws`;
-  //var gateway = `ws://192.168.3.199/ws`;
   
   var websocket;
   window.addEventListener('load', onLoad);
@@ -118,14 +115,14 @@
     {
       document.getElementById("tempsRestant").value = obj.tempsRestant;
 	  minutes=Math.floor(obj.tempsRestant/60);
-	  secondes=obj.tempsRestant%60;
+	  secondes=obj.tempsRestant%%60;
       document.getElementById("tempsRestant2").innerHTML = zeroPad(minutes,2) + ":" + zeroPad(secondes,2);
     }
 	
 	if (obj.hasOwnProperty('tempsInitial'))
     {
       minutes=Math.floor(obj.tempsInitial/60);
-	  secondes=obj.tempsInitial%60;
+	  secondes=obj.tempsInitial%%60;
 	  document.getElementById("tempsInitialMinutes").value = zeroPad(minutes,2);
 	  document.getElementById("tempsInitialSecondes").value = zeroPad(secondes,2);
     }
@@ -158,7 +155,8 @@
 	
 	if (obj.hasOwnProperty('nbFilSafe'))
     {
-      document.getElementById("nbFilSafe").value = obj.nbFilSafe;  
+      document.getElementById("nbFilSafe").value = obj.nbFilSafe;
+	  updateFil();
     }
 	
 	if (obj.hasOwnProperty('nbFilDelai'))
@@ -168,13 +166,52 @@
 	
 	if (obj.hasOwnProperty('actionFilInit'))
     {
-      for (let i = 0; i < 8; i++)
+      updateFil();
+    }
+	
+	if (obj.hasOwnProperty('actionFil'))
+    {
+      nbFil = parseInt(document.getElementById("nbFilActif").value);
+	  
+	  for (let i = 0; i < nbFil ; i++)
 	  {
 		j=i+1;
-		filToChange = "filInit" + j;
-		document.getElementById(filToChange).value = obj.actionFilInit[i];
+		filToChange = "filAction" + j;
+		document.getElementById(filToChange).innerHTML = getFilValue(obj.actionFil[i]);
+	  }
+	  
+	  for (let i = nbFil; i < 8; i++)
+	  {
+		j=i+1;
+		filToChange = "filAction" + j;
+		document.getElementById(filToChange).innerHTML = "-----";
 	  }
     }
+	
+	function updateFil()
+	{
+	  nbFil = parseInt(document.getElementById("nbFilActif").value);
+	  
+	  for (let i = 0; i < nbFil ; i++)
+	  {
+		j=i+1;
+		filInitToChange = "filInit" + j;
+		filActionToChange = "fil" + j;
+		document.getElementById(filInitToChange).value = obj.actionFilInit[i];
+		document.getElementById(filInitToChange).disabled = false;
+		document.getElementById(filActionToChange).innerHTML = "fil " + j;
+	  }
+	  
+	  for (let i = nbFil; i < 8; i++)
+	  {
+		j=i+1;
+		filInitToChange = "filInit" + j;
+		filActionToChange = "fil" + j;
+		document.getElementById(filInitToChange).value = "6";
+		document.getElementById(filInitToChange).disabled = true;
+		document.getElementById(filActionToChange).innerHTML = "-----";
+	  }	  
+	}
 	
 	function getFilValue(x)
 	{
@@ -204,9 +241,12 @@
 			return "COUPE";
 			break;
 			
+		  case 6:
+			return "-----";
+			break;
 			
 		  default:
-			return "NEUTRE";
+			return "-----";
 		}
 	}
 	
@@ -255,16 +295,6 @@
 			return "";
 		}
 	}
-	
-	if (obj.hasOwnProperty('actionFil'))
-    {
-      for (let i = 0; i < 8; i++)
-	  {
-		j=i+1;
-		filToChange = "fil" + j;
-		document.getElementById(filToChange).innerHTML = getFilValue(obj.actionFil[i]);
-	  }
-    }
 	
 	if (obj.hasOwnProperty('apName'))
     {
@@ -325,15 +355,15 @@
     </tr>
     <tr>
       <td>Object ID </td>
-      <td><input type="number" id="objectId" name="objectId" min="1" max="1000" onchange="sendNewValue('objectId',document.getElementById('objectId').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 1000</td>
+      <td><input type="number" id="objectId" name="objectId" min="1" max="1000" style="text-align: center;width:70px;" onchange="sendNewValue('objectId',document.getElementById('objectId').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 1000</td>
     </tr>
 	<tr>
       <td>Group ID </td>
-      <td><input type="number" id="groupId" name="groupId" min="1" max="1000" onchange="sendNewValue('groupId',document.getElementById('groupId').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 1000</td>
+      <td><input type="number" id="groupId" name="groupId" min="1" max="1000" style="text-align: center;width:70px;" onchange="sendNewValue('groupId',document.getElementById('groupId').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 1 - 1000</td>
     </tr>
     <tr>
       <td>ActiveLeds </td>
-      <td><input type="number" id="activeLeds" name="activeLeds" min="1" max="%MAXLEDS%" onchange="sendNewValue('activeLeds',document.getElementById('activeLeds').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp;  1 - %MAXLEDS%</td>
+      <td><input type="number" id="activeLeds" name="activeLeds" min="1" max="%MAXLEDS%" style="text-align: center;width:70px;" onchange="sendNewValue('activeLeds',document.getElementById('activeLeds').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp;  1 - %MAXLEDS%</td>
     </tr>
     <tr>
       <td>Brightness : <span id="brightness2"></span></td>
@@ -352,13 +382,13 @@
 	<tr>
       <td>Temps restant : <span id="tempsRestant2"></span></td>
       <td>
-		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-1, false);">-1</button>
-		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-5, false);">-5</button>
-		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-60, false);">-60</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-1, false);">-1s</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-5, false);">-5s</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)-60, false);">-60s</button>
 		<input class="enabled" id="tempsRestant" name="tempsRestant" type="range" min="0" max="5940" step="1" onChange="sendNewValue('tempsRestant',document.getElementById('tempsRestant').value, false);">
-		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+1, false);">+1</button>
-		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+5, false);">+5</button>
-		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+60, false);">+60</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+1, false);">+1s</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+5, false);">+5s</button>
+		<button onclick="sendNewValue('tempsRestant',parseInt(document.getElementById('tempsRestant').value)+60, false);">+60s</button>
 	  </td>
     </tr>
 	<tr>
@@ -376,47 +406,47 @@
     </tr>
 	<tr>
       <td>tempsInitial </td>
-      <td><input type="number" id="tempsInitialMinutes" name="tempsInitialMinutes" min="0" max="99" onchange="sendNewValue('tempsInitial',parseInt(this.value)*60+parseInt(document.getElementById('tempsInitialSecondes').value), false);">
+      <td><input type="number" id="tempsInitialMinutes" name="tempsInitialMinutes" min="0" max="99" style="text-align: center;width:70px;" onchange="sendNewValue('tempsInitial',parseInt(this.value)*60+parseInt(document.getElementById('tempsInitialSecondes').value), false);">
 	  &nbsp; :&nbsp;
-	  <input type="number" id="tempsInitialSecondes" name="tempsInitialSecondes" min="0" max="60" onchange="sendNewValue('tempsInitial',parseInt(document.getElementById('tempsInitialMinutes').value)*60+parseInt(this.value), false);"> &nbsp;  &nbsp; &nbsp; &nbsp; 00:00 - 99:00</td>
+	  <input type="number" id="tempsInitialSecondes" name="tempsInitialSecondes" min="0" max="60" style="text-align: center;width:70px;" onchange="sendNewValue('tempsInitial',parseInt(document.getElementById('tempsInitialMinutes').value)*60+parseInt(this.value), false);"> &nbsp;  &nbsp; &nbsp; &nbsp; 00:00 - 99:00</td>
     </tr>
 	<tr>
       <td>intervalTemps </td>
-      <td><input type="number" id="intervalTemps" name="intervalTemps" min="0.1" max="10" step="0.1" onchange="sendNewValue('intervalTemps',document.getElementById('intervalTemps').value*1000, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0.1 - 10 s</td>
+      <td><input type="number" id="intervalTemps" name="intervalTemps" min="0.1" max="10" step="0.1" style="text-align: center;width:70px;" onchange="sendNewValue('intervalTemps',document.getElementById('intervalTemps').value*1000, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0.1 - 10 s</td>
     </tr>
 	<tr>
       <td>beepEvery </td>
-      <td><input type="number" id="beepEvery" name="beepEvery" min="0" max="60" onchange="sendNewValue('beepEvery',document.getElementById('beepEvery').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 60 s</td>
+      <td><input type="number" id="beepEvery" name="beepEvery" min="0" max="300" style="text-align: center;width:70px;" onchange="sendNewValue('beepEvery',document.getElementById('beepEvery').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 300 s</td>
     </tr>
 	<tr>
       <td>beepUnder </td>
-      <td><input type="number" id="beepUnder" name="beepUnder" min="0" max="60" onchange="sendNewValue('beepUnder',document.getElementById('beepUnder').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 60 s</td>
+      <td><input type="number" id="beepUnder" name="beepUnder" min="0" max="60" style="text-align: center;width:70px;" onchange="sendNewValue('beepUnder',document.getElementById('beepUnder').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 60 s</td>
     </tr>
 	<tr>
       <td>nbFilActif </td>
-      <td><input type="number" id="nbFilActif" name="nbFilActif" min="0" max="8" onchange="sendNewValue('nbFilActif',document.getElementById('nbFilActif').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+      <td><input type="number" id="nbFilActif" name="nbFilActif" min="0" max="8" style="text-align: center;width:70px;" onchange="sendNewValue('nbFilActif',document.getElementById('nbFilActif').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
     </tr>
 	<tr>
       <td>nbFilExplosion </td>
-      <td><input type="number" id="nbFilExplosion" name="nbFilExplosion" min="0" max="8" onchange="sendNewValue('nbFilExplosion',document.getElementById('nbFilExplosion').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+      <td><input type="number" id="nbFilExplosion" name="nbFilExplosion" min="0" max="8" style="text-align: center;width:70px;" onchange="sendNewValue('nbFilExplosion',document.getElementById('nbFilExplosion').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
     </tr>
 	<tr>
       <td>nbFilSafe </td>
-      <td><input type="number" id="nbFilSafe" name="nbFilSafe" min="0" max="8" onchange="sendNewValue('nbFilSafe',document.getElementById('nbFilSafe').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+      <td><input type="number" id="nbFilSafe" name="nbFilSafe" min="0" max="8" style="text-align: center;width:70px;" onchange="sendNewValue('nbFilSafe',document.getElementById('nbFilSafe').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
     </tr>
 	<tr>
       <td>nbFilDelai </td>
-      <td><input type="number" id="nbFilDelai" name="nbFilDelai" min="0" max="8" onchange="sendNewValue('nbFilDelai',document.getElementById('nbFilDelai').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+      <td><input type="number" id="nbFilDelai" name="nbFilDelai" min="0" max="8" style="text-align: center;width:70px;" onchange="sendNewValue('nbFilDelai',document.getElementById('nbFilDelai').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
     </tr>
 	<tr>
       <td>actionFil </td>
       <td>
 		<table>
 			<tr>
-				<td>fil 1</td>
-				<td>fil 2</td>
-				<td>fil 3</td>
-				<td>fil 4</td>
+				<td><span id="fil1"></span></td>
+				<td><span id="fil2"></span></td>
+				<td><span id="fil3"></span></td>
+				<td><span id="fil4"></span></td>
 			</tr>
 			<tr>
 				<td>
@@ -427,6 +457,7 @@
 				<option value="3">EXPLOSION</option>
 				<option value="4">ALEATOIRE</option>
 				<option value="5">COUPE</option>
+				<option value="6">-----</option>
 				</select>
 				</td>
 				<td>
@@ -437,6 +468,7 @@
 				<option value="3">EXPLOSION</option>
 				<option value="4">ALEATOIRE</option>
 				<option value="5">COUPE</option>
+				<option value="6">-----</option>				
 				</select>
 				</td>
 				<td>
@@ -447,6 +479,7 @@
 				<option value="3">EXPLOSION</option>
 				<option value="4">ALEATOIRE</option>
 				<option value="5">COUPE</option>
+				<option value="6">-----</option>
 				</select>
 				</td>
 				<td>
@@ -457,24 +490,25 @@
 				<option value="3">EXPLOSION</option>
 				<option value="4">ALEATOIRE</option>
 				<option value="5">COUPE</option>
+				<option value="6">-----</option>
 				</select>
 				</td>
 			</tr>
 			
 			<tr>
-				<td><span id="fil1"></span></td>
-				<td><span id="fil2"></span></td>
-				<td><span id="fil3"></span></td>
-				<td><span id="fil4"></span></td>
+				<td><span id="filAction1"></span></td>
+				<td><span id="filAction2"></span></td>
+				<td><span id="filAction3"></span></td>
+				<td><span id="filAction4"></span></td>
 			</tr>
 			<tr>
 				<td colspan="4">&nbsp;</td>
 			</tr>
 			<tr>
-				<td>fil 5</td>
-				<td>fil 6</td>
-				<td>fil 7</td>
-				<td>fil 8</td>
+				<td><span id="fil5"></span></td>
+				<td><span id="fil6"></span></td>
+				<td><span id="fil7"></span></td>
+				<td><span id="fil8"></span></td>
 			</tr>
 			<tr>
 				<td>
@@ -485,6 +519,7 @@
 				<option value="3">EXPLOSION</option>
 				<option value="4">ALEATOIRE</option>
 				<option value="5">COUPE</option>
+				<option value="6">-----</option>
 				</select>
 				</td>
 				<td>
@@ -495,6 +530,7 @@
 				<option value="3">EXPLOSION</option>
 				<option value="4">ALEATOIRE</option>
 				<option value="5">COUPE</option>
+				<option value="6">-----</option>
 				</select>
 				</td>
 				<td>
@@ -505,6 +541,7 @@
 				<option value="3">EXPLOSION</option>
 				<option value="4">ALEATOIRE</option>
 				<option value="5">COUPE</option>
+				<option value="6">-----</option>
 				</select>
 				</td>
 				<td>
@@ -515,17 +552,22 @@
 				<option value="3">EXPLOSION</option>
 				<option value="4">ALEATOIRE</option>
 				<option value="5">COUPE</option>
+				<option value="6">-----</option>
 				</select>
 				</td>
 			</tr>
 			<tr>
-				<td><span id="fil5"></span></td>
-				<td><span id="fil6"></span></td>
-				<td><span id="fil7"></span></td>
-				<td><span id="fil8"></span></td>
+				<td><span id="filAction5"></span></td>
+				<td><span id="filAction6"></span></td>
+				<td><span id="filAction7"></span></td>
+				<td><span id="filAction8"></span></td>
 			</tr>
 		</table>		
 	  </td>
+    </tr>
+	<tr>
+      <td>tirage aléatoire</td>
+      <td><button onclick="sendNewValue('filAleatoire',1, false);">fil aléatoire</button></td>
     </tr>
 	</table>
 	<table width=600>

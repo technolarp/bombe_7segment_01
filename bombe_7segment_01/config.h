@@ -427,21 +427,18 @@ class M_config
   	objectConfig.groupId = 1;
   	objectConfig.activeLeds = 8;
     objectConfig.brightness = 80;
-    //objectConfig.tempsRestant = 300;
-    //objectConfig.statutBombe = 0;
-    //objectConfig.statutBombePrecedent = 0;
     objectConfig.tempsInitial = 300;
     objectConfig.intervalTemps = 1000;
     objectConfig.beepEvery = 30;
     objectConfig.beepUnder = 10;
-    objectConfig.nbFilActif = 4;
-    objectConfig.nbFilExplosion = 2;
-    objectConfig.nbFilSafe = 2;
-    objectConfig.nbFilDelai = 4;
+    objectConfig.nbFilActif = 0;
+    objectConfig.nbFilExplosion = 1;
+    objectConfig.nbFilSafe = 1;
+    objectConfig.nbFilDelai = 1;
     
     for (uint8_t i=0;i<FILS_MAX;i++)
     {
-      objectConfig.actionFilInit[i]=FIL_ALEATOIRE;
+      objectConfig.actionFilInit[i]=FIL_NEUTRE;
     }
     
     objectConfig.couleur1.red = 0;
@@ -462,8 +459,8 @@ class M_config
   void writeDefaultNetworkConfig(const char * filename)
   {
     strlcpy(  networkConfig.apName,
-                    "VUMETRE",
-                    sizeof("VUMETRE"));
+                    "BOMBE",
+                    sizeof("BOMBE"));
     
     strlcpy(  networkConfig.apPassword,
                     "",

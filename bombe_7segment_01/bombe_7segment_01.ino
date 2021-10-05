@@ -28,7 +28,6 @@
    ----------------------------------------------------------------------------
 */
 
-
 #include <Arduino.h>
 
 // WIFI
@@ -157,7 +156,7 @@ void setup()
   aFastled->allLedOff();
 
   // CHECK RESET OBJECT CONFIG  
-  if (!aMcp23017.readPin(BOUTON_4) && !aMcp23017.readPin(BOUTON_1) )
+  if (!aMcp23017.readPin(BOUTON_1) && !aMcp23017.readPin(BOUTON_4) )
   {
     aFastled->allLedOn(CRGB::Yellow);
     
@@ -166,6 +165,21 @@ void setup()
     Serial.println(F(""));
     aConfig.writeDefaultObjectConfig("/config/objectconfig.txt");
     aConfig.printJsonFile("/config/objectconfig.txt");
+
+    delay(1000);
+  }
+  aFastled->allLedOff();
+
+  // CHECK RESET OBJECT CONFIG  
+  if (!aMcp23017.readPin(BOUTON_2) && !aMcp23017.readPin(BOUTON_3) )
+  {
+    aFastled->allLedOn(CRGB::Cyan);
+    
+    Serial.println(F(""));
+    Serial.println(F("!!! RESET NETWORK CONFIG !!!"));
+    Serial.println(F(""));
+    aConfig.writeDefaultObjectConfig("/config/networkconfig.txt");
+    aConfig.printJsonFile("/config/networkconfig.txt");
 
     delay(1000);
   }
@@ -181,16 +195,17 @@ void setup()
   // WIFI
   WiFi.disconnect(true);
   
-  /*
+  
   // AP MODE
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAPConfig(aConfig.networkConfig.apIP, aConfig.networkConfig.apIP, aConfig.networkConfig.apNetMsk);
   WiFi.softAP(aConfig.networkConfig.apName, aConfig.networkConfig.apPassword);
   
-  */
+  
+  /*
   // CLIENT MODE POUR DEBUG
   const char* ssid = "MYDEBUG";
-  const char* password = "pppppppp";
+  const char* password = "pppppp";
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
@@ -198,6 +213,7 @@ void setup()
   {
     Serial.printf("WiFi Failed!\n");        
   }
+*/
   
   // WEB SERVER
   // Print ESP Local IP Address
@@ -348,18 +364,12 @@ void bombeAllumee()
     affecteFilsAleatoires();
     sendActionFil();
     
-    Serial.print("AFFECTATION:  ");
-    for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
-    {
-      Serial.print(actionFil[i]);
-      Serial.print(" ");
-    }
-    Serial.println(" ");
-
     // REFRESH
     currentMillisRefresh = millis();
     previousMillisRefresh = currentMillisRefresh;
     intervalRefresh = 300;
+
+    tempsRestant=aConfig.objectConfig.tempsInitial;
 
     Serial.print(F("BOMBE ALLUMEE"));
     Serial.println();
@@ -613,7 +623,8 @@ void bombeBlink()
     Serial.println(F("END TASK BLINK"));
 
     //blinkUneFois = true;
-    uneFois = true;
+    //uneFois = true;
+    aFastled->allLedOff();
 
     // retour au statut precedent
     statutBombe = statutBombePrecedent;
@@ -765,6 +776,14 @@ void affecteFilsAleatoires()
       actionFil[i]=FIL_NEUTRE;
     }
   }
+
+  Serial.print("AFFECTATION:  ");
+  for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
+  {
+    Serial.print(actionFil[i]);
+    Serial.print(" ");
+  }
+  Serial.println(" ");
 }
 
 // index of max value in an array
@@ -1009,7 +1028,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           currentMillisRefresh = millis();
           previousMillisRefresh = currentMillisRefresh;
           
-          if (statutBombe == BOMBE_ACTIVE)
+          if ( (statutBombe == BOMBE_ACTIVE) || (statutBombe == BOMBE_PAUSE) )
           {
             a7segmentDisplay.showTempsRestant(max<int16_t>(0,tempsRestant));
           }          
@@ -1109,7 +1128,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
         if (doc.containsKey("new_beepEvery"))
         {
           uint16_t tmpValeur = doc["new_beepEvery"];
-          aConfig.objectConfig.beepEvery = checkValeur(tmpValeur,0,60);
+          aConfig.objectConfig.beepEvery = checkValeur(tmpValeur,0,300);
                     
           writeObjectConfig = true;
           sendObjectConfig = true;
@@ -1129,6 +1148,61 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
           uint16_t tmpValeur = doc["new_tempsInitial"];
           aConfig.objectConfig.tempsInitial = checkValeur(tmpValeur,0,5940);
                     
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        if (doc.containsKey("new_nbFilActif"))
+        {
+          uint16_t tmpValeur = doc["new_nbFilActif"];
+          aConfig.objectConfig.nbFilActif = checkValeur(tmpValeur,0,8);
+                    
+          sendActionFil();
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        if ( doc.containsKey("new_filAleatoire") && doc["new_filAleatoire"]==1 )
+        {
+          Serial.println(F("RESET fil Aleatoire"));
+          
+          affecteFilsAleatoires();
+          sendActionFil();
+          
+          writeObjectConfig = false;
+          sendObjectConfig = true;
+        }
+
+        if (doc.containsKey("new_nbFilExplosion"))
+        {
+          uint16_t tmpValeur = doc["new_nbFilExplosion"];
+          aConfig.objectConfig.nbFilExplosion = checkValeur(tmpValeur,0,8);
+                    
+          sendActionFil();
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        if (doc.containsKey("new_nbFilSafe"))
+        {
+          uint16_t tmpValeur = doc["new_nbFilSafe"];
+          aConfig.objectConfig.nbFilSafe = checkValeur(tmpValeur,0,8);
+                    
+          sendActionFil();
+          
+          writeObjectConfig = true;
+          sendObjectConfig = true;
+        }
+
+        if (doc.containsKey("new_nbFilDelai"))
+        {
+          uint16_t tmpValeur = doc["new_nbFilDelai"];
+          aConfig.objectConfig.nbFilDelai = checkValeur(tmpValeur,0,8);
+                    
+          sendActionFil();
+          
           writeObjectConfig = true;
           sendObjectConfig = true;
         }
@@ -1206,6 +1280,10 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
         if ( doc.containsKey("new_refresh") && doc["new_refresh"]==1 )
         {
           Serial.println(F("REFRESH"));
+
+          sendActionFil();
+          sendTempsRestant();
+          sendStatutBombe();
           sendObjectConfig = true;
           sendNetworkConfig = true;
         }

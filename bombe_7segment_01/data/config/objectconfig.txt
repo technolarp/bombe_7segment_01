@@ -10,9 +10,9 @@
 	"intervalTemps": 1000,
 	"beepEvery": 30,
 	"beepUnder": 10,
-	"nbFilActif": 8,
-	"nbFilExplosion": 2,
-    "nbFilSafe": 2,
-    "nbFilDelai": 2,
-	"actionFilInit": [4,4,4,4,4,4,4,4]
+	"nbFilActif": 0,
+	"nbFilExplosion": 1,
+    "nbFilSafe": 1,
+    "nbFilDelai": 1,
+	"actionFilInit": [0,0,0,0,0,0,0,0]
 }
