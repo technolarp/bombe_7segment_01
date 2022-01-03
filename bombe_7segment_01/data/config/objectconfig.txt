@@ -5,7 +5,7 @@
 	"activeLeds": 8,
     "brightness": 80,
 	"couleurs": [[255,0,0],[0,255,0]],
-	"tempsInitial": 3,
+	"tempsInitial": 500,
 	"intervalTemps": 1000,
 	"tempsRestant": 300,
 	"beepEvery": 30,
