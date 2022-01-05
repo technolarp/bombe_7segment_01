@@ -1,8 +1,8 @@
- /*
+/*
    ----------------------------------------------------------------------------
    TECHNOLARP - https://technolarp.github.io/
    BOMBE 7SEGMENT 01 - https://github.com/technolarp/bombe_7segment_01
-   version 1.0 - 12/2021
+   version 1.0 - 01/2022
    ----------------------------------------------------------------------------
 */
 
@@ -10,7 +10,7 @@
    ----------------------------------------------------------------------------
    Pour ce montage, vous avez besoin de 
    1 multiplexer MCP23017 + 4 boutons poussoir
-   1 afficheur 4*7segement TM1636
+   1 afficheur 4*7segment TM1636
    1 ou + leds neopixel
    1 buzzer piezo
    ----------------------------------------------------------------------------
@@ -25,20 +25,14 @@
    D3     TM1637 DIO
    D5     TM1637 CLK
    D8     BUZZER
+
+   MCP_A0 BOUTON_1
+   MCP_A1 BOUTON_2
+   MCP_A2 BOUTON_3
+   MCP_A3 BOUTON_4
    ----------------------------------------------------------------------------
 */
 
-/*
-TODO
-inversion  statut bouton_4 pour mise à feu
-manque tionFilInit[FILS_MAX] config
-
-check fils coupes
-move check bouton dans une fonction
-refaire html
-
-bug tempsInitial secondes
-*/
 
 #include <Arduino.h>
 
@@ -72,6 +66,7 @@ M_7segment a7segmentDisplay;
 // MCP23017
 #include "technolarp_mcp23017.h"
 M_mcp23017 aMcp23017;
+bool statutBouton4 = false;
 
 // BUZZER
 #define PIN_BUZZER D8
@@ -83,8 +78,7 @@ bool uneFois = true;
 
 uint8_t statutActuel = 8;
 uint8_t statutPrecedent = 8;
-
-//bool blinkMinutesOuSecondes = false;
+uint16_t intervalTemps = 1000;
 
 uint8_t actionFil[FILS_MAX];
 
@@ -124,7 +118,7 @@ void setup()
   Serial.println(F("----------------------------------------------------------------------------"));
   Serial.println(F("TECHNOLARP - https://technolarp.github.io/"));
   Serial.println(F("BOMBE 7SEGMENT 01 - https://github.com/technolarp/bombe_7segment_01"));
-  Serial.println(F("version 1.0 - 12/2021"));
+  Serial.println(F("version 1.0 - 01/2022"));
   Serial.println(F("----------------------------------------------------------------------------"));
   
   // I2C RESET
@@ -132,6 +126,7 @@ void setup()
 
   // MCP23017
   aMcp23017.beginMcp23017(0);
+  statutBouton4 = aMcp23017.readPin(BOUTON_4);
   
   // CONFIG OBJET
   Serial.println(F(""));
@@ -157,7 +152,7 @@ void setup()
   aFastled.animationDepart(50, aFastled.getNbLed()*2, CRGB::Blue);
 
   // CHECK RESET OBJECT CONFIG  
-  if (!aMcp23017.readPin(BOUTON_1) && !aMcp23017.readPin(BOUTON_4) )
+  if (!aMcp23017.readPin(BOUTON_1) && !aMcp23017.readPin(BOUTON_3) )
   {
     aFastled.allLedOn(CRGB::Yellow, true);
     
@@ -192,7 +187,6 @@ void setup()
   // WIFI
   WiFi.disconnect(true);
   
-  /*
   // AP MODE
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAPConfig(aConfig.networkConfig.apIP, aConfig.networkConfig.apIP, aConfig.networkConfig.apNetMsk);
@@ -211,10 +205,10 @@ void setup()
   Serial.print(F("softAPIP: "));
   Serial.println(WiFi.softAPIP());
   
-  */
+  /*
   // CLIENT MODE POUR DEBUG
-  const char* ssid = "MYDEBUG";
-  const char* password = "ppppppppp";
+  const char* ssid = "SID";
+  const char* password = "PASSWORD";
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   
@@ -226,6 +220,7 @@ void setup()
   {
     Serial.println(F("WiFi OK"));
   }
+  */
 
   // Print ESP Local IP Address
   Serial.print(F("localIP: "));
@@ -270,20 +265,17 @@ void setup()
 */
 void loop()
 {
-  // avoid watchdog reset
-  yield();
-  
   // WEBSOCKET
   ws.cleanupClients();
 
   // FASTLED
   aFastled.updateAnimation();
   
-  // BUZZER
-  buzzer.update();
-
   // 7 SEGMENT
   a7segmentDisplay.updateAnimation();
+
+  // BUZZER
+  buzzer.update();
   
   // gerer le statut de la serrure
   switch (statutActuel)
@@ -303,22 +295,22 @@ void loop()
       bombeExplosion();
       break;
 
-     case OBJET_EXPLOSE:
+    case OBJET_EXPLOSE:
       // la bombe a explosee
       bombeExplosee();
       break;
 
-      case OBJET_SAFE:
+    case OBJET_SAFE:
       // la bombe a explosee
       bombeSafe();
       break;
 
-      case OBJET_PAUSE:
+    case OBJET_PAUSE:
       // la bombe est en pause
       bombePause();
       break;
       
-      case OBJET_BLINK:
+    case OBJET_BLINK:
       // blink leds
       bombeBlink();
       break;
@@ -328,7 +320,7 @@ void loop()
       break;
   }
 
-  // traite le buffer du websocket
+  // traiter le buffer du websocket
   if (flagBufferWebsocket)
   {
     flagBufferWebsocket = false;
@@ -375,7 +367,8 @@ void bombeAllumee()
     a7segmentDisplay.setAnimation(0);
     aFastled.animationBlink02Start(600, 2000, aConfig.objectConfig.couleurs[1], CRGB::Black, true);
 
-    a7segmentDisplay.setDoublePoint(false);
+    a7segmentDisplay.setBlinkDoublePoint(false);
+    a7segmentDisplay.setStatutDoublePoint(true);
     a7segmentDisplay.setBlinkAffichage(true);
     a7segmentDisplay.setBlinkMinutesOuSecondes(true);
     
@@ -427,9 +420,15 @@ void bombeAllumee()
   }
 
   // check si la bombe est activée
-  // BOUTON_ACTIVATION_PIN appuyé, on active la bombe
-  if (aMcp23017.checkButton(BOUTON_4))
+  // BOUTON_4 inversé, on active la bombe
+  if (aMcp23017.readPin(BOUTON_4) != statutBouton4)
   {
+    // iniatialiser le temps restant
+    aConfig.objectConfig.tempsRestant=aConfig.objectConfig.tempsInitial;
+
+    // on beep 2 fois
+    buzzer.doubleBeep();
+    
     // la bombe est maintenant active
     statutActuel = OBJET_ACTIF;
     uneFois = true;
@@ -450,8 +449,7 @@ void bombeActive()
 
     sendStatut();
 
-    // on beep 2 fois
-    buzzer.doubleBeep();
+    intervalTemps = aConfig.objectConfig.intervalTemps;
     
     aFastled.setAnimation(0);
     a7segmentDisplay.setAnimation(0);
@@ -463,12 +461,10 @@ void bombeActive()
     aFastled.allLedOn(aConfig.objectConfig.couleurs[0], true);
 
     // on fait clignoter le :
-    a7segmentDisplay.setDoublePoint(true);
+    a7segmentDisplay.setBlinkDoublePoint(true);
+    a7segmentDisplay.setStatutDoublePoint(true);
 
-    aConfig.objectConfig.tempsRestant=aConfig.objectConfig.tempsInitial;
     previousMillisCountdown = millis();
-    a7segmentDisplay.setBlinkAffichage(false);
-    a7segmentDisplay.setStatutBlinkAffichage(false);
     
     // COUNTDOWN
     previousMillisCountdown = millis();
@@ -483,7 +479,7 @@ void bombeActive()
   else
   {
     // il reste du temps
-    if(millis() - previousMillisCountdown > aConfig.objectConfig.intervalTemps)
+    if(millis() - previousMillisCountdown > intervalTemps)
     {
       previousMillisCountdown = millis();
 
@@ -515,7 +511,6 @@ void bombeActive()
     // mettre a jour l affichage
     a7segmentDisplay.showTempsRestant(max<int16_t>(0,aConfig.objectConfig.tempsRestant));
     
-
     // check fils coupes
     checkFilCoupe();
   }
@@ -533,19 +528,24 @@ void bombeExplosion()
     aFastled.setAnimation(0);
     a7segmentDisplay.setAnimation(0);
 
-    a7segmentDisplay.setDoublePoint(false);
-    aFastled.animationBlink02Start(100, 5000, aConfig.objectConfig.couleurs[0], CRGB::Black);
-    a7segmentDisplay.animationBoomStart(100, 5000);
+    uint16_t delayAnim = 5000;
+
+    // start buzzer
+    buzzer.explosionBeep(delayAnim);
     
-    buzzer.buzzerOn(500);
+    // start led anim
+    aFastled.animationBlink02Start(100, delayAnim, aConfig.objectConfig.couleurs[0], CRGB::Black);
+    
+    // start 7segment anim
+    a7segmentDisplay.setBlinkDoublePoint(false);
+    a7segmentDisplay.setStatutDoublePoint(false);
+    a7segmentDisplay.animationBoomStart(100, delayAnim);
   }
 
   // fin de l'animation explosion
-  if(!aFastled.isAnimActive()) 
+  if(!aFastled.isAnimActive())
   {
     uneFois = true;
-
-    buzzer.buzzerOff();
 
     statutActuel = OBJET_EXPLOSE;
 
@@ -569,7 +569,8 @@ void bombeExplosee()
     a7segmentDisplay.setAnimation(0);
     buzzer.buzzerOff();
     
-    a7segmentDisplay.setDoublePoint(false);
+    a7segmentDisplay.setBlinkDoublePoint(false);
+    a7segmentDisplay.setStatutDoublePoint(false);
     
     // on eteint les leds
     aFastled.allLedOff();
@@ -588,27 +589,13 @@ void bombePause()
           
     sendStatut();
     
-    //a7segmentDisplay.setDoublePoint(false);
+    a7segmentDisplay.setBlinkDoublePoint(false);
+    a7segmentDisplay.setStatutDoublePoint(true);
   }
   
   // on empeche le temps de progresser
   previousMillisCountdown = millis();
 }
-
-/*
-void bombeUnpause()
-{
-  if (uneFois)
-  {
-    //uneFois = false;
-    sendStatut();
-    //a7segmentDisplay.setDoublePoint(true);
-    statutActuel = statutUnpause;
-    uneFois = true;
-  }
-}
-
-*/
 
 void bombeSafe()
 {
@@ -621,12 +608,13 @@ void bombeSafe()
     a7segmentDisplay.setAnimation(0);
     buzzer.buzzerOff();
     
-    a7segmentDisplay.setDoublePoint(false);
+    a7segmentDisplay.setBlinkDoublePoint(false);
+    a7segmentDisplay.setStatutDoublePoint(false);
     
     // on eteint les leds
     aFastled.allLedOff();
 
-    // on affiche "- - - -"
+    // on affiche "S A F E"
     a7segmentDisplay.showSafe();
   }
 }
@@ -678,8 +666,9 @@ void checkFilCoupe()
         case FIL_DELAI:
           // divide ul_Interval by 2
           buzzer.doubleBeep();
-          aConfig.objectConfig.intervalTemps/=2;
+          intervalTemps/=2;
           actionFil[i]=FIL_COUPE;
+          sendIntervalTemps();
           Serial.print("fil delai: ");
           Serial.println(i);
         break;
@@ -824,8 +813,7 @@ uint8_t indexMaxValeur(uint8_t arraySize, uint8_t arrayToSearch[])
       currentMax = arrayToSearch[i];
       indexMax = i;
     }
-  }
-  
+  }  
   return(indexMax);
 }
 
@@ -951,8 +939,7 @@ void handleWebsocketBuffer()
           uint16_t tmpValeur = doc["new_activeLeds"];
           aConfig.objectConfig.activeLeds = checkValeur(tmpValeur,1,NB_LEDS_MAX);
           aFastled.setNbLed(aConfig.objectConfig.activeLeds);
-          uneFois=true;
-          
+
           writeObjectConfigFlag = true;
           sendObjectConfigFlag = true;
         }
@@ -962,8 +949,7 @@ void handleWebsocketBuffer()
           uint16_t tmpValeur = doc["new_brightness"];
           aConfig.objectConfig.brightness = checkValeur(tmpValeur,0,255);
           aFastled.setBrightness(aConfig.objectConfig.brightness);
-          //aFastled.ledShow();
-          uneFois=true;
+          aFastled.ledShow();
           
           writeObjectConfigFlag = true;
           sendObjectConfigFlag = true;
@@ -987,7 +973,7 @@ void handleWebsocketBuffer()
         {
           uint16_t tmpValeur = doc["new_intervalTemps"];
           aConfig.objectConfig.intervalTemps = checkValeur(tmpValeur,0,10000);
-          
+          intervalTemps = aConfig.objectConfig.intervalTemps;
           uneFois=true;
           
           writeObjectConfigFlag = true;
@@ -1043,7 +1029,7 @@ void handleWebsocketBuffer()
           {
             statutActuel = statutPrecedent;
             previousMillisCountdown = millis();
-            a7segmentDisplay.setDoublePoint(true);
+            a7segmentDisplay.setBlinkDoublePoint(true);
           }
 
           sendStatut();
@@ -1065,8 +1051,6 @@ void handleWebsocketBuffer()
           aConfig.objectConfig.couleurs[i].red=r;
           aConfig.objectConfig.couleurs[i].green=g;
           aConfig.objectConfig.couleurs[i].blue=b;
-          
-          uneFois=true;
             
           writeObjectConfigFlag = true;
           sendObjectConfigFlag = true;
@@ -1359,23 +1343,7 @@ void sendActionFil()
                           actionFil[6],
                           actionFil[7]
                           );
-  //Serial.println(toSend);
   ws.textAll(toSend);
-  
-  /*
-  String toSend = "{\"actionFil\":[";
-  for (uint8_t i=0;i<FILS_MAX;i++)
-  {
-    toSend+= actionFil[i];
-    if (i <(FILS_MAX-1))
-    {
-      toSend+= ",";
-    }
-  }  
-  toSend+= "]}";
-
-  ws.textAll(toSend);
-  */
 }
 
 void sendTempsRestant()
@@ -1386,14 +1354,19 @@ void sendTempsRestant()
   ws.textAll(toSend);
 }
 
+void sendIntervalTemps()
+{
+  char toSend[50];
+  snprintf(toSend, 100, "{\"intervalTemps\":%i}", intervalTemps);
+
+  ws.textAll(toSend);
+}
 void sendStatut()
 {
   char toSend[100];
   snprintf(toSend, 100, "{\"statutActuel\":%i}", statutActuel); 
 
   ws.textAll(toSend);
-  //Serial.print("toSend: ");
-  //Serial.println(toSend);
 }
 
 /*

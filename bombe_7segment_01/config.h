@@ -117,9 +117,6 @@ class M_config
       objectConfig.nbFilExplosion = doc["nbFilExplosion"];
       objectConfig.nbFilSafe = doc["nbFilSafe"];
       objectConfig.nbFilDelai = doc["nbFilDelai"];
-      
-      //objectConfig.statutActuel = doc["statutActuel"];
-      //objectConfig.statutPrecedent = doc["statutPrecedent"];
 
       if (doc.containsKey("couleurs"))
       {
@@ -134,6 +131,17 @@ class M_config
           objectConfig.couleurs[i].blue =  rgbArray[2];
         }        
       }
+
+      if (doc.containsKey("actionFilInit"))
+      {
+        JsonArray couleurActionFil=doc["actionFilInit"];
+        
+        for (uint8_t i=0;i<FILS_MAX;i++)
+        {
+          objectConfig.actionFilInit[i]=couleurActionFil[i];
+        }        
+      }
+      
 
       // read object name
       if (doc.containsKey("objectName"))
@@ -183,9 +191,13 @@ class M_config
     doc["nbFilExplosion"] = objectConfig.nbFilExplosion;
     doc["nbFilSafe"] = objectConfig.nbFilSafe;
     doc["nbFilDelai"] = objectConfig.nbFilDelai;
-    
-    //doc["statutActuel"] = objectConfig.statutActuel;
-    //doc["statutPrecedent"] = objectConfig.statutPrecedent;
+
+    JsonArray actionFilArray = doc.createNestedArray("actionFilInit");
+
+    for (uint8_t i=0;i<FILS_MAX;i++)
+    {
+      actionFilArray.add(objectConfig.actionFilInit[i]);
+    }
 
     JsonArray couleurArray = doc.createNestedArray("couleurs");
 
@@ -226,9 +238,11 @@ class M_config
     objectConfig.nbFilExplosion = 1;
     objectConfig.nbFilSafe = 1;
     objectConfig.nbFilDelai = 1;
-  
-    //objectConfig.statutActuel = 8;
-    //objectConfig.statutPrecedent = 8;
+
+    for (uint8_t i=0;i<FILS_MAX;i++)
+    {
+      objectConfig.actionFilInit[i]=0;
+    }
 
     objectConfig.couleurs[0].red = 255;
     objectConfig.couleurs[0].green = 0;
