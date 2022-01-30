@@ -265,6 +265,9 @@ void setup()
 */
 void loop()
 {
+  // AVOID WATCHDOG
+  yield();
+  
   // WEBSOCKET
   ws.cleanupClients();
 
@@ -273,6 +276,9 @@ void loop()
   
   // 7 SEGMENT
   a7segmentDisplay.updateAnimation();
+
+  // CONTROL BRIGHTNESS
+  aFastled.controlBrightness(aConfig.objectConfig.brightness);
 
   // BUZZER
   buzzer.update();
@@ -908,7 +914,7 @@ void handleWebsocketBuffer()
         {
           strlcpy(  aConfig.objectConfig.objectName,
                     doc["new_objectName"],
-                    sizeof(aConfig.objectConfig.objectName));
+                    SIZE_ARRAY);
   
           writeObjectConfigFlag = true;
           sendObjectConfigFlag = true;
@@ -955,6 +961,31 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
+        if (doc.containsKey("new_intervalScintillement"))
+        {
+          uint16_t tmpValeur = doc["new_intervalScintillement"];
+          aConfig.objectConfig.intervalScintillement = checkValeur(tmpValeur,0,1000);
+          aFastled.setIntervalControlBrightness(aConfig.objectConfig.intervalScintillement);
+          
+          writeObjectConfigFlag = true;
+          sendObjectConfigFlag = true;
+        }
+        
+        if (doc.containsKey("new_scintillementOnOff"))
+        {
+          uint16_t tmpValeur = doc["new_scintillementOnOff"];
+          aConfig.objectConfig.scintillementOnOff = checkValeur(tmpValeur,0,1);
+          aFastled.setControlBrightness(aConfig.objectConfig.scintillementOnOff);
+          
+          if (aConfig.objectConfig.scintillementOnOff == 0)
+          {
+            FastLED.setBrightness(aConfig.objectConfig.brightness);
+          }
+          
+          writeObjectConfigFlag = true;
+          sendObjectConfigFlag = true;
+        }
+        
         if (doc.containsKey("new_tempsRestant"))
         {
           uint16_t tmpValeur = doc["new_tempsRestant"];
@@ -1146,60 +1177,61 @@ void handleWebsocketBuffer()
           strlcpy(  aConfig.networkConfig.apName,
                     doc["new_apName"],
                     sizeof(aConfig.networkConfig.apName));
-  
+        
           // check for unsupported char
-          checkCharacter(aConfig.networkConfig.apName, "ABCDEFGHIJKLMNOPQRSTUVWYZ", 'A');
+          checkCharacter(aConfig.networkConfig.apName, "ABCDEFGHIJKLMNOPQRSTUVWYXZ0123456789_-", 'A');
           
           writeNetworkConfigFlag = true;
           sendNetworkConfigFlag = true;
         }
-  
+        
         if (doc.containsKey("new_apPassword")) 
         {
           strlcpy(  aConfig.networkConfig.apPassword,
                     doc["new_apPassword"],
                     sizeof(aConfig.networkConfig.apPassword));
-  
+        
           writeNetworkConfigFlag = true;
+          sendNetworkConfigFlag = true;
         }
-  
+        
         if (doc.containsKey("new_apIP")) 
         {
           char newIPchar[16] = "";
-  
+        
           strlcpy(  newIPchar,
                     doc["new_apIP"],
                     sizeof(newIPchar));
-  
+        
           IPAddress newIP;
-          if (newIP.fromString(newIPchar)) 
+          if (newIP.fromString(newIPchar))
           {
             Serial.println("valid IP");
             aConfig.networkConfig.apIP = newIP;
-  
+        
             writeNetworkConfigFlag = true;
           }
           
           sendNetworkConfigFlag = true;
         }
-  
+        
         if (doc.containsKey("new_apNetMsk")) 
         {
           char newNMchar[16] = "";
-  
+        
           strlcpy(  newNMchar,
                     doc["new_apNetMsk"],
                     sizeof(newNMchar));
-  
+        
           IPAddress newNM;
           if (newNM.fromString(newNMchar)) 
           {
             Serial.println("valid netmask");
             aConfig.networkConfig.apNetMsk = newNM;
-  
+        
             writeNetworkConfigFlag = true;
           }
-  
+        
           sendNetworkConfigFlag = true;
         }
         
@@ -1209,62 +1241,64 @@ void handleWebsocketBuffer()
           Serial.println(F("RESTART RESTART RESTART"));
           ESP.restart();
         }
-  
+        
         if ( doc.containsKey("new_refresh") && doc["new_refresh"]==1 )
         {
           Serial.println(F("REFRESH"));
-
-          sendActionFil();
-          sendTempsRestant();
-          sendStatut();
+        
           sendObjectConfigFlag = true;
           sendNetworkConfigFlag = true;
         }
-
+        
         if ( doc.containsKey("new_defaultObjectConfig") && doc["new_defaultObjectConfig"]==1 )
         {
-          Serial.println(F("reset to default object config"));
           aConfig.writeDefaultObjectConfig("/config/objectconfig.txt");
+          Serial.println(F("reset to default object config"));
+        
+          aFastled.allLedOff();
+          aFastled.setNbLed(aConfig.objectConfig.activeLeds);          
+          aFastled.setControlBrightness(aConfig.objectConfig.scintillementOnOff);
+          aFastled.setIntervalControlBrightness(aConfig.objectConfig.intervalScintillement);
           
           sendObjectConfigFlag = true;
           uneFois = true;
         }
-
+        
         if ( doc.containsKey("new_defaultNetworkConfig") && doc["new_defaultNetworkConfig"]==1 )
         {
-          Serial.println(F("reset to default network config"));
-
-          writeNetworkConfigFlag = true;
+          aConfig.writeDefaultNetworkConfig("/config/networkconfig.txt");
+          Serial.println(F("reset to default network config"));          
+          
           sendNetworkConfigFlag = true;
         }
-  
-        // modif config
-      // write object config
-      if (writeObjectConfigFlag)
-      {
-        writeObjectConfig();
         
-        // update statut
-        uneFois = true;
-      }
-
-      // resend object config
-      if (sendObjectConfigFlag)
-      {
-        sendObjectConfig();
-      }
-
-      // write network config
-      if (writeNetworkConfigFlag)
-      {
-        writeObjectConfig();
-      }
-
-      // resend network config
-      if (sendNetworkConfigFlag)
-      {
-        sendNetworkConfig();
-      }
+        // modif config
+        // write object config
+        if (writeObjectConfigFlag)
+        {
+          writeObjectConfig();
+        
+          // update statut
+          uneFois = true;
+        }
+        
+        // resend object config
+        if (sendObjectConfigFlag)
+        {
+          sendObjectConfig();
+        }
+        
+        // write network config
+        if (writeNetworkConfigFlag)
+        {
+          writeNetworkConfig();
+        }
+        
+        // resend network config
+        if (sendNetworkConfigFlag)
+        {
+          sendNetworkConfig();
+        }
     }
  
     // clear json buffer
@@ -1361,6 +1395,7 @@ void sendIntervalTemps()
 
   ws.textAll(toSend);
 }
+
 void sendStatut()
 {
   char toSend[100];
@@ -1368,7 +1403,6 @@ void sendStatut()
 
   ws.textAll(toSend);
 }
-
 /*
    ----------------------------------------------------------------------------
    FIN DES FONCTIONS ADDITIONNELLES
