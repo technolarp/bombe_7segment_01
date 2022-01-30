@@ -2,13 +2,12 @@
 #include <ArduinoJson.h> // arduino json v6  // https://github.com/bblanchon/ArduinoJson
 
 // to upload config dile : https://github.com/earlephilhower/arduino-esp8266littlefs-plugin/releases
-#define SIZE_ARRAY 20
+#define SIZE_ARRAY 21
 #define NB_COULEURS 2
-#define JSONBUFFERSIZE 1024
+#define JSONBUFFERSIZE 2048
 
 #include <IPAddress.h>
 #include <FastLED.h>
-
 
 // FILS DE DESAMORCAGE
 #define FILS_MAX 8
@@ -35,6 +34,9 @@ class M_config
     
     uint8_t activeLeds;
     uint8_t brightness;
+
+    uint16_t intervalScintillement;
+    uint16_t scintillementOnOff;
 
     uint8_t statutActuel;
     uint8_t statutPrecedent;
@@ -105,6 +107,9 @@ class M_config
       
       objectConfig.activeLeds = doc["activeLeds"];
       objectConfig.brightness = doc["brightness"];
+
+      objectConfig.intervalScintillement = doc["intervalScintillement"];
+      objectConfig.scintillementOnOff = doc["scintillementOnOff"];
       
       objectConfig.tempsInitial = doc["tempsInitial"];
       objectConfig.intervalTemps = doc["intervalTemps"];
@@ -180,6 +185,9 @@ class M_config
     doc["activeLeds"] = objectConfig.activeLeds;
     doc["brightness"] = objectConfig.brightness;
 
+    doc["intervalScintillement"] = objectConfig.intervalScintillement;
+    doc["scintillementOnOff"] = objectConfig.scintillementOnOff;
+
     doc["tempsInitial"] = objectConfig.tempsInitial;
     doc["intervalTemps"] = objectConfig.intervalTemps;
     doc["tempsRestant"] = objectConfig.tempsRestant;
@@ -228,6 +236,9 @@ class M_config
     objectConfig.activeLeds = 8;
     objectConfig.brightness = 80;
 
+    objectConfig.intervalScintillement = 50;
+    objectConfig.scintillementOnOff = 0;
+
     objectConfig.tempsInitial = 300;
     objectConfig.intervalTemps = 1000;
     objectConfig.tempsRestant = 300;
@@ -254,7 +265,7 @@ class M_config
     
     strlcpy( objectConfig.objectName,
              "bombe 01",
-             sizeof("bombe 01"));
+             SIZE_ARRAY);
     
     writeObjectConfig(filename);
   }
@@ -306,14 +317,14 @@ class M_config
       { 
         strlcpy(  networkConfig.apName,
                   doc["apName"],
-                  sizeof(networkConfig.apName));
+                  SIZE_ARRAY);
       }
 
       if (doc.containsKey("apPassword"))
       { 
         strlcpy(  networkConfig.apPassword,
                   doc["apPassword"],
-                  sizeof(networkConfig.apPassword));
+                  SIZE_ARRAY);
       }
     }
       
@@ -371,11 +382,11 @@ class M_config
   {
   strlcpy(  networkConfig.apName,
             "BOMBE",
-            sizeof("BOMBE"));
+            SIZE_ARRAY);
   
   strlcpy(  networkConfig.apPassword,
             "",
-            sizeof(""));
+            SIZE_ARRAY);
 
   networkConfig.apIP[0]=192;
   networkConfig.apIP[1]=168;
@@ -389,7 +400,6 @@ class M_config
     
   writeNetworkConfig(filename);
   }
-
   void stringJsonFile(const char * filename, char * target, uint16_t targetReadSize)
   {
     // Open file for reading
