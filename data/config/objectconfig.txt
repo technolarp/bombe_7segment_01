@@ -1,0 +1,20 @@
+{
+	"objectId": 1,
+	"groupId": 1,
+	"objectName": "bombe 01",
+	"activeLeds": 8,
+    "brightness": 80,
+	"intervalScintillement":50,
+	"scintillementOnOff":0,
+	"couleurs": [[255,0,0],[0,255,0]],
+	"tempsInitial": 500,
+	"intervalTemps": 1000,
+	"tempsRestant": 300,
+	"beepEvery": 30,
+	"beepUnder": 10,
+	"nbFilActif": 0,
+	"nbFilExplosion": 1,
+    "nbFilSafe": 1,
+    "nbFilDelai": 1,
+	"actionFilInit": [0,0,0,0,0,0,0,0]
+}
