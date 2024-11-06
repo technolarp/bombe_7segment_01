@@ -918,7 +918,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 
 void handleWebsocketBuffer()
 {    
-    DynamicJsonDocument doc(JSONBUFFERSIZE);
+    JsonDocument doc;
     
     DeserializationError error = deserializeJson(doc, bufferWebsocket);
     if (error)
@@ -936,7 +936,7 @@ void handleWebsocketBuffer()
         // **********************************************
         // modif object config
         // **********************************************
-        if (doc.containsKey("new_objectName"))
+        if (doc["new_objectName"].is<JsonVariant>())
         {
           strlcpy(  aConfig.objectConfig.objectName,
                     doc["new_objectName"],
@@ -946,7 +946,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
   
-        if (doc.containsKey("new_objectId")) 
+        if (doc["new_objectId"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_objectId"];
           aConfig.objectConfig.objectId = checkValeur(tmpValeur,1,1000);
@@ -955,7 +955,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
   
-        if (doc.containsKey("new_groupId")) 
+        if (doc["new_groupId"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_groupId"];
           aConfig.objectConfig.groupId = checkValeur(tmpValeur,1,1000);
@@ -964,7 +964,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
   
-        if (doc.containsKey("new_activeLeds")) 
+        if (doc["new_activeLeds"].is<JsonVariant>())
         {
           aFastled.allLedOff();
           
@@ -976,7 +976,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
   
-        if (doc.containsKey("new_brightness"))
+        if (doc["new_brightness"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_brightness"];
           aConfig.objectConfig.brightness = checkValeur(tmpValeur,0,255);
@@ -987,7 +987,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc.containsKey("new_intervalScintillement"))
+        if (doc["new_intervalScintillement"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_intervalScintillement"];
           aConfig.objectConfig.intervalScintillement = checkValeur(tmpValeur,0,1000);
@@ -997,7 +997,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
         
-        if (doc.containsKey("new_scintillementOnOff"))
+        if (doc["new_scintillementOnOff"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_scintillementOnOff"];
           aConfig.objectConfig.scintillementOnOff = checkValeur(tmpValeur,0,1);
@@ -1012,7 +1012,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
         
-        if (doc.containsKey("new_tempsRestant"))
+        if (doc["new_tempsRestant"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_tempsRestant"];
           aConfig.objectConfig.tempsRestant = checkValeur(tmpValeur,0,5940);
@@ -1026,7 +1026,7 @@ void handleWebsocketBuffer()
           sendTempsRestant();
         }
 
-        if (doc.containsKey("new_intervalTemps"))
+        if (doc["new_intervalTemps"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_intervalTemps"];
           aConfig.objectConfig.intervalTemps = checkValeur(tmpValeur,0,10000);
@@ -1037,7 +1037,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }        
 
-        if (doc.containsKey("new_actionFilInit")) 
+        if (doc["new_actionFilInit"].is<JsonVariant>())
         {
           JsonArray newActionFil = doc["new_actionFilInit"];
         
@@ -1052,7 +1052,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
         
-        if (doc.containsKey("new_statutActuel"))
+        if (doc["new_statutActuel"].is<JsonVariant>())
         {
           statutPrecedent=statutActuel;
           
@@ -1067,7 +1067,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if ( doc.containsKey("new_objetPause") && doc["new_objetPause"]==1 )
+        if ( doc["new_objetPause"].is<JsonVariant>() && doc["new_objetPause"]==1 )
         {
           if (statutActuel == OBJET_ACTIF)
           {
@@ -1078,7 +1078,7 @@ void handleWebsocketBuffer()
           }
         }
 
-        if ( doc.containsKey("new_objetUnpause") && doc["new_objetUnpause"]==1 )
+        if (doc["new_objetUnpause"].is<JsonVariant>() && doc["new_objetUnpause"]==1 )
         {
           Serial.println(F("UNPAUSE"));
           
@@ -1092,7 +1092,7 @@ void handleWebsocketBuffer()
           sendStatut();
         }
         
-        if (doc.containsKey("new_couleurs")) 
+        if (doc["new_couleurs"].is<JsonVariant>()) 
         {
           JsonArray newCouleur = doc["new_couleurs"];
   
@@ -1113,7 +1113,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc.containsKey("new_beepEvery"))
+        if (doc["new_beepEvery"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_beepEvery"];
           aConfig.objectConfig.beepEvery = checkValeur(tmpValeur,0,300);
@@ -1122,7 +1122,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc.containsKey("new_beepUnder"))
+        if (doc["new_beepUnder"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_beepUnder"];
           aConfig.objectConfig.beepUnder = checkValeur(tmpValeur,0,60);
@@ -1131,7 +1131,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc.containsKey("new_tempsInitial"))
+        if (doc["new_tempsInitial"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_tempsInitial"];
           aConfig.objectConfig.tempsInitial = checkValeur(tmpValeur,0,5940);
@@ -1140,7 +1140,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc.containsKey("new_nbFilActif"))
+        if (doc["new_nbFilActif"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_nbFilActif"];
           aConfig.objectConfig.nbFilActif = checkValeur(tmpValeur,0,8);
@@ -1151,7 +1151,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if ( doc.containsKey("new_filAleatoire") && doc["new_filAleatoire"]==1 )
+        if (doc["new_filAleatoire"].is<JsonVariant>() && doc["new_filAleatoire"]==1 )
         {
           Serial.println(F("RESET fil Aleatoire"));
           
@@ -1162,7 +1162,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc.containsKey("new_nbFilExplosion"))
+        if (doc["new_nbFilExplosion"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_nbFilExplosion"];
           aConfig.objectConfig.nbFilExplosion = checkValeur(tmpValeur,0,8);
@@ -1173,7 +1173,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc.containsKey("new_nbFilSafe"))
+        if (doc["new_nbFilSafe"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_nbFilSafe"];
           aConfig.objectConfig.nbFilSafe = checkValeur(tmpValeur,0,8);
@@ -1184,7 +1184,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc.containsKey("new_nbFilDelai"))
+        if (doc["new_nbFilDelai"].is<JsonVariant>())
         {
           uint16_t tmpValeur = doc["new_nbFilDelai"];
           aConfig.objectConfig.nbFilDelai = checkValeur(tmpValeur,0,8);
@@ -1198,7 +1198,7 @@ void handleWebsocketBuffer()
         // **********************************************
         // modif network config
         // **********************************************
-        if (doc.containsKey("new_apName")) 
+        if (doc["new_apName"].is<JsonVariant>()) 
         {
           strlcpy(  aConfig.networkConfig.apName,
                     doc["new_apName"],
@@ -1212,7 +1212,7 @@ void handleWebsocketBuffer()
           sendNetworkConfigFlag = true;
         }
         
-        if (doc.containsKey("new_apPassword")) 
+        if (doc["new_apPassword"].is<JsonVariant>()) 
         {
           strlcpy(  aConfig.networkConfig.apPassword,
                     doc["new_apPassword"],
@@ -1222,7 +1222,7 @@ void handleWebsocketBuffer()
           sendNetworkConfigFlag = true;
         }
         
-        if (doc.containsKey("new_apIP")) 
+        if (doc["new_apIP"].is<JsonVariant>()) 
         {
           char newIPchar[16] = "";
         
@@ -1242,7 +1242,7 @@ void handleWebsocketBuffer()
           sendNetworkConfigFlag = true;
         }
         
-        if (doc.containsKey("new_apNetMsk")) 
+        if (doc["new_apNetMsk"].is<JsonVariant>()) 
         {
           char newNMchar[16] = "";
         
@@ -1263,13 +1263,13 @@ void handleWebsocketBuffer()
         }
         
         // actions sur le esp8266
-        if ( doc.containsKey("new_restart") && doc["new_restart"]==1 )
+        if (doc["new_restart"].is<JsonVariant>() && doc["new_restart"]==1 )
         {
           Serial.println(F("RESTART RESTART RESTART"));
           ESP.restart();
         }
         
-        if ( doc.containsKey("new_refresh") && doc["new_refresh"]==1 )
+        if (doc["new_refresh"].is<JsonVariant>() && doc["new_refresh"]==1 )
         {
           Serial.println(F("REFRESH"));
         
@@ -1277,7 +1277,7 @@ void handleWebsocketBuffer()
           sendNetworkConfigFlag = true;
         }
         
-        if ( doc.containsKey("new_defaultObjectConfig") && doc["new_defaultObjectConfig"]==1 )
+        if (doc["new_defaultObjectConfig"].is<JsonVariant>() && doc["new_defaultObjectConfig"]==1 )
         {
           aConfig.writeDefaultObjectConfig("/config/objectconfig.txt");
           Serial.println(F("reset to default object config"));
@@ -1291,7 +1291,7 @@ void handleWebsocketBuffer()
           uneFois = true;
         }
         
-        if ( doc.containsKey("new_defaultNetworkConfig") && doc["new_defaultNetworkConfig"]==1 )
+        if (doc["new_defaultNetworkConfig"].is<JsonVariant>() && doc["new_defaultNetworkConfig"]==1 )
         {
           aConfig.writeDefaultNetworkConfig("/config/networkconfig.txt");
           Serial.println(F("reset to default network config"));          
