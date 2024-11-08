@@ -946,7 +946,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
   
-        if (doc["new_objectId"].is<JsonVariant>())
+        if (doc["new_objectId"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_objectId"];
           aConfig.objectConfig.objectId = checkValeur(tmpValeur,1,1000);
@@ -955,7 +955,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
   
-        if (doc["new_groupId"].is<JsonVariant>())
+        if (doc["new_groupId"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_groupId"];
           aConfig.objectConfig.groupId = checkValeur(tmpValeur,1,1000);
@@ -964,7 +964,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
   
-        if (doc["new_activeLeds"].is<JsonVariant>())
+        if (doc["new_activeLeds"].is<unsigned short>())
         {
           aFastled.allLedOff();
           
@@ -976,7 +976,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
   
-        if (doc["new_brightness"].is<JsonVariant>())
+        if (doc["new_brightness"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_brightness"];
           aConfig.objectConfig.brightness = checkValeur(tmpValeur,0,255);
@@ -987,7 +987,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_intervalScintillement"].is<JsonVariant>())
+        if (doc["new_intervalScintillement"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_intervalScintillement"];
           aConfig.objectConfig.intervalScintillement = checkValeur(tmpValeur,0,1000);
@@ -997,7 +997,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
         
-        if (doc["new_scintillementOnOff"].is<JsonVariant>())
+        if (doc["new_scintillementOnOff"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_scintillementOnOff"];
           aConfig.objectConfig.scintillementOnOff = checkValeur(tmpValeur,0,1);
@@ -1012,7 +1012,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
         
-        if (doc["new_tempsRestant"].is<JsonVariant>())
+        if (doc["new_tempsRestant"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_tempsRestant"];
           aConfig.objectConfig.tempsRestant = checkValeur(tmpValeur,0,5940);
@@ -1026,11 +1026,12 @@ void handleWebsocketBuffer()
           sendTempsRestant();
         }
 
-        if (doc["new_intervalTemps"].is<JsonVariant>())
+        if (doc["new_intervalTemps"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_intervalTemps"];
           aConfig.objectConfig.intervalTemps = checkValeur(tmpValeur,0,10000);
           intervalTemps = aConfig.objectConfig.intervalTemps;
+          
           uneFois=true;
           
           writeObjectConfigFlag = true;
