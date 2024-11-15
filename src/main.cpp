@@ -695,13 +695,23 @@ void checkFilCoupe()
           Serial.println(i);
         break;
         
-        case FIL_DELAI:
+        case FIL_DELAI_MOINS:
           // divide ul_Interval by 2
           buzzer.doubleBeep();
           intervalTemps/=2;
           actionFil[i]=FIL_COUPE;
           sendIntervalTemps();
-          Serial.print("fil delai: ");
+          Serial.print("fil delai moins: ");
+          Serial.println(i);
+        break;
+
+        case FIL_DELAI_PLUS:
+          // multiply ul_Interval by 2
+          buzzer.doubleBeep();
+          intervalTemps*=2;
+          actionFil[i]=FIL_COUPE;
+          sendIntervalTemps();
+          Serial.print("fil delai plus: ");
           Serial.println(i);
         break;
     
@@ -747,7 +757,8 @@ void affecteFilsAleatoires()
 
   uint8_t nbFilExplosionTmp=aConfig.objectConfig.nbFilExplosion;
   uint8_t nbFilSafeTmp=aConfig.objectConfig.nbFilSafe;
-  uint8_t nbFilDelaiTmp=aConfig.objectConfig.nbFilDelai;
+  uint8_t nbFilDelaiMoinsTmp=aConfig.objectConfig.nbFilDelaiMoins;
+  uint8_t nbFilDelaiPlusTmp=aConfig.objectConfig.nbFilDelaiPlus;
 
   uint8_t filAssignation[aConfig.objectConfig.nbFilActif];
   for (uint8_t i=0;i<aConfig.objectConfig.nbFilActif;i++)
@@ -784,12 +795,21 @@ void affecteFilsAleatoires()
     filsAleatoiresCpt--;
   }
 
-  // prepare FIL_DELAI wires
-  while( (filsAleatoiresCpt>0) && (nbFilDelaiTmp>0) )
+  // prepare FIL_DELAI_MOINS wires
+  while( (filsAleatoiresCpt>0) && (nbFilDelaiMoinsTmp>0) )
   {
-    filAssignation[indexfilAssignation]=FIL_DELAI;
+    filAssignation[indexfilAssignation]=FIL_DELAI_MOINS;
     indexfilAssignation++;
-    nbFilDelaiTmp--;
+    nbFilDelaiMoinsTmp--;
+    filsAleatoiresCpt--;
+  }
+
+  // prepare FIL_DELAI_PLUS wires
+  while( (filsAleatoiresCpt>0) && (nbFilDelaiPlusTmp>0) )
+  {
+    filAssignation[indexfilAssignation]=FIL_DELAI_PLUS;
+    indexfilAssignation++;
+    nbFilDelaiPlusTmp--;
     filsAleatoiresCpt--;
   }
 
@@ -936,7 +956,7 @@ void handleWebsocketBuffer()
         // **********************************************
         // modif object config
         // **********************************************
-        if (doc["new_objectName"].is<JsonVariant>())
+        if (doc["new_objectName"].is<const char*>())
         {
           strlcpy(  aConfig.objectConfig.objectName,
                     doc["new_objectName"],
@@ -1053,7 +1073,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
         
-        if (doc["new_statutActuel"].is<JsonVariant>())
+        if (doc["new_statutActuel"].is<unsigned short>())
         {
           statutPrecedent=statutActuel;
           
@@ -1068,7 +1088,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if ( doc["new_objetPause"].is<JsonVariant>() && doc["new_objetPause"]==1 )
+        if ( doc["new_objetPause"].is<unsigned char>() && doc["new_objetPause"]==1 )
         {
           if (statutActuel == OBJET_ACTIF)
           {
@@ -1079,7 +1099,7 @@ void handleWebsocketBuffer()
           }
         }
 
-        if (doc["new_objetUnpause"].is<JsonVariant>() && doc["new_objetUnpause"]==1 )
+        if (doc["new_objetUnpause"].is<unsigned char>() && doc["new_objetUnpause"]==1 )
         {
           Serial.println(F("UNPAUSE"));
           
@@ -1114,7 +1134,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_beepEvery"].is<JsonVariant>())
+        if (doc["new_beepEvery"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_beepEvery"];
           aConfig.objectConfig.beepEvery = checkValeur(tmpValeur,0,300);
@@ -1123,7 +1143,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_beepUnder"].is<JsonVariant>())
+        if (doc["new_beepUnder"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_beepUnder"];
           aConfig.objectConfig.beepUnder = checkValeur(tmpValeur,0,60);
@@ -1132,7 +1152,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_tempsInitial"].is<JsonVariant>())
+        if (doc["new_tempsInitial"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_tempsInitial"];
           aConfig.objectConfig.tempsInitial = checkValeur(tmpValeur,0,5940);
@@ -1141,7 +1161,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_nbFilActif"].is<JsonVariant>())
+        if (doc["new_nbFilActif"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_nbFilActif"];
           aConfig.objectConfig.nbFilActif = checkValeur(tmpValeur,0,8);
@@ -1152,7 +1172,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_filAleatoire"].is<JsonVariant>() && doc["new_filAleatoire"]==1 )
+        if (doc["new_filAleatoire"].is<unsigned char>() && doc["new_filAleatoire"]==1 )
         {
           Serial.println(F("RESET fil Aleatoire"));
           
@@ -1163,7 +1183,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_nbFilExplosion"].is<JsonVariant>())
+        if (doc["new_nbFilExplosion"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_nbFilExplosion"];
           aConfig.objectConfig.nbFilExplosion = checkValeur(tmpValeur,0,8);
@@ -1174,7 +1194,7 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_nbFilSafe"].is<JsonVariant>())
+        if (doc["new_nbFilSafe"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_nbFilSafe"];
           aConfig.objectConfig.nbFilSafe = checkValeur(tmpValeur,0,8);
@@ -1185,10 +1205,21 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }
 
-        if (doc["new_nbFilDelai"].is<JsonVariant>())
+        if (doc["nbFilDelaiMoins"].is<unsigned short>())
         {
-          uint16_t tmpValeur = doc["new_nbFilDelai"];
-          aConfig.objectConfig.nbFilDelai = checkValeur(tmpValeur,0,8);
+          uint16_t tmpValeur = doc["nbFilDelaiMoins"];
+          aConfig.objectConfig.nbFilDelaiMoins = checkValeur(tmpValeur,0,8);
+                    
+          sendActionFil();
+          
+          writeObjectConfigFlag = true;
+          sendObjectConfigFlag = true;
+        }
+
+        if (doc["nbFilDelaiPlus"].is<unsigned short>())
+        {
+          uint16_t tmpValeur = doc["nbFilDelaiPlus"];
+          aConfig.objectConfig.nbFilDelaiPlus = checkValeur(tmpValeur,0,8);
                     
           sendActionFil();
           
@@ -1199,7 +1230,7 @@ void handleWebsocketBuffer()
         // **********************************************
         // modif network config
         // **********************************************
-        if (doc["new_apName"].is<JsonVariant>()) 
+        if (doc["new_apName"].is<const char*>()) 
         {
           strlcpy(  aConfig.networkConfig.apName,
                     doc["new_apName"],
@@ -1213,7 +1244,7 @@ void handleWebsocketBuffer()
           sendNetworkConfigFlag = true;
         }
         
-        if (doc["new_apPassword"].is<JsonVariant>()) 
+        if (doc["new_apPassword"].is<const char*>()) 
         {
           strlcpy(  aConfig.networkConfig.apPassword,
                     doc["new_apPassword"],
@@ -1232,6 +1263,7 @@ void handleWebsocketBuffer()
                     sizeof(newIPchar));
         
           IPAddress newIP;
+          
           if (newIP.fromString(newIPchar))
           {
             Serial.println("valid IP");
@@ -1264,13 +1296,13 @@ void handleWebsocketBuffer()
         }
         
         // actions sur le esp8266
-        if (doc["new_restart"].is<JsonVariant>() && doc["new_restart"]==1 )
+        if (doc["new_restart"].is<unsigned char>() && doc["new_restart"]==1 )
         {
           Serial.println(F("RESTART RESTART RESTART"));
           ESP.restart();
         }
         
-        if (doc["new_refresh"].is<JsonVariant>() && doc["new_refresh"]==1 )
+        if (doc["new_refresh"].is<unsigned char>() && doc["new_refresh"]==1 )
         {
           Serial.println(F("REFRESH"));
         
@@ -1278,7 +1310,7 @@ void handleWebsocketBuffer()
           sendNetworkConfigFlag = true;
         }
         
-        if (doc["new_defaultObjectConfig"].is<JsonVariant>() && doc["new_defaultObjectConfig"]==1 )
+        if (doc["new_defaultObjectConfig"].is<unsigned char>() && doc["new_defaultObjectConfig"]==1 )
         {
           aConfig.writeDefaultObjectConfig("/config/objectconfig.txt");
           Serial.println(F("reset to default object config"));
@@ -1292,7 +1324,7 @@ void handleWebsocketBuffer()
           uneFois = true;
         }
         
-        if (doc["new_defaultNetworkConfig"].is<JsonVariant>() && doc["new_defaultNetworkConfig"]==1 )
+        if (doc["new_defaultNetworkConfig"].is<unsigned char>() && doc["new_defaultNetworkConfig"]==1 )
         {
           aConfig.writeDefaultNetworkConfig("/config/networkconfig.txt");
           Serial.println(F("reset to default network config"));          

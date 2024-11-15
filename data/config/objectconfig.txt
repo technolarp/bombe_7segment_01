@@ -15,6 +15,7 @@
 	"nbFilActif": 0,
 	"nbFilExplosion": 1,
     "nbFilSafe": 1,
-    "nbFilDelai": 1,
+    "nbFilDelaiMoins": 1,
+	"nbFilDelaiPlus": 1,
 	"actionFilInit": [0,0,0,0,0,0,0,0]
 }
