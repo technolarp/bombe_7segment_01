@@ -14,10 +14,11 @@
 enum {
   FIL_NEUTRE = 0,
   FIL_SAFE = 1,
-  FIL_DELAI = 2,
-  FIL_EXPLOSION = 3,
-  FIL_ALEATOIRE = 4,
-  FIL_COUPE = 5
+  FIL_DELAI_MOINS = 2,
+  FIL_DELAI_PLUS = 3,
+  FIL_EXPLOSION = 4,
+  FIL_ALEATOIRE = 5,
+  FIL_COUPE = 6
 };
 
 class M_config
@@ -53,7 +54,8 @@ class M_config
     uint8_t nbFilActif;
     uint8_t nbFilExplosion;
     uint8_t nbFilSafe;
-    uint8_t nbFilDelai;
+    uint8_t nbFilDelaiMoins;
+    uint8_t nbFilDelaiPlus;
 
     // DEFINITION DES ACTIONS POUR CHAQUE FIL
     uint8_t actionFilInit[FILS_MAX];
@@ -120,7 +122,8 @@ class M_config
       objectConfig.nbFilActif = doc["nbFilActif"];
       objectConfig.nbFilExplosion = doc["nbFilExplosion"];
       objectConfig.nbFilSafe = doc["nbFilSafe"];
-      objectConfig.nbFilDelai = doc["nbFilDelai"];
+      objectConfig.nbFilDelaiMoins = doc["nbFilDelaiMoins"];
+      objectConfig.nbFilDelaiPlus = doc["nbFilDelaiPlus"];
 
       if (doc["couleurs"].is<JsonVariant>())
       {
@@ -147,7 +150,7 @@ class M_config
       }
       
       // read object name
-      if (doc["objectName"].is<JsonVariant>())
+      if (doc["objectName"].is<const char*>())
       { 
         strlcpy(  objectConfig.objectName,
                   doc["objectName"],
@@ -196,7 +199,8 @@ class M_config
     doc["nbFilActif"] = objectConfig.nbFilActif;
     doc["nbFilExplosion"] = objectConfig.nbFilExplosion;
     doc["nbFilSafe"] = objectConfig.nbFilSafe;
-    doc["nbFilDelai"] = objectConfig.nbFilDelai;
+    doc["nbFilDelaiMoins"] = objectConfig.nbFilDelaiMoins;
+    doc["nbFilDelaiPlus"] = objectConfig.nbFilDelaiPlus;
 
     JsonArray actionFilArray = doc["actionFilInit"].to<JsonArray>();
 
@@ -246,7 +250,8 @@ class M_config
     objectConfig.nbFilActif = 0;
     objectConfig.nbFilExplosion = 1;
     objectConfig.nbFilSafe = 1;
-    objectConfig.nbFilDelai = 1;
+    objectConfig.nbFilDelaiMoins = 1;
+    objectConfig.nbFilDelaiPlus = 1;
 
     for (uint8_t i=0;i<FILS_MAX;i++)
     {
@@ -311,14 +316,14 @@ class M_config
         networkConfig.apNetMsk[3] = apNetMsk[3];
       }
           
-      if (doc["apName"].is<JsonVariant>())
+      if (doc["apName"].is<const char*>())
       { 
         strlcpy(  networkConfig.apName,
                   doc["apName"],
                   SIZE_ARRAY);
       }
 
-      if (doc["apPassword"].is<JsonVariant>())
+      if (doc["apPassword"].is<const char*>())
       { 
         strlcpy(  networkConfig.apPassword,
                   doc["apPassword"],

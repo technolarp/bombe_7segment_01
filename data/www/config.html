@@ -175,9 +175,9 @@
 	  updateFil();
     }
 	
-	if (obj.hasOwnProperty('nbFilDelai'))
+	if (obj.hasOwnProperty('nbFilDelaiMoins'))
     {
-      document.getElementById("nbFilDelai").value = obj.nbFilDelai;  
+      document.getElementById("nbFilDelaiMoins").value = obj.nbFilDelaiMoins;  
     }
 	
 	if (obj.hasOwnProperty('actionFilInit'))
@@ -223,7 +223,7 @@
 		j=i+1;
 		filInitToChange = "filInit" + j;
 		filActionToChange = "fil" + j;
-		document.getElementById(filInitToChange).value = "6";
+		document.getElementById(filInitToChange).value = "7";
 		document.getElementById(filInitToChange).disabled = true;
 		document.getElementById(filActionToChange).innerHTML = "-----";
 	  }	  
@@ -242,22 +242,26 @@
 			break;
 			
 		  case 2:
-			return "DELAI";
+			return "DELAI_MOINS";
 			break;
 			
 		  case 3:
-			return "EXPLOSION";
+			return "DELAI_PLUS";
 			break;
 			
 		  case 4:
+			return "EXPLOSION";
+			break;
+			
+		  case 5:
 			return "ALEATOIRE";
 			break;
 		
-		  case 5:
+		  case 6:
 			return "COUPE";
 			break;
 			
-		  case 6:
+		  case 7:
 			return "-----";
 			break;
 			
@@ -481,9 +485,13 @@
       <td><input type="number" id="nbFilSafe" name="nbFilSafe" min="0" max="8" style="text-align: center;width:70px;" onchange="sendNewValue('nbFilSafe',document.getElementById('nbFilSafe').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
     </tr>
 	<tr>
-      <td>nbFilDelai </td>
-      <td><input type="number" id="nbFilDelai" name="nbFilDelai" min="0" max="8" style="text-align: center;width:70px;" onchange="sendNewValue('nbFilDelai',document.getElementById('nbFilDelai').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+      <td>nbFilDelaiMoins </td>
+      <td><input type="number" id="nbFilDelaiMoins" name="nbFilDelaiMoins" min="0" max="8" style="text-align: center;width:70px;" onchange="sendNewValue('nbFilDelaiMoins',document.getElementById('nbFilDelaiMoins').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
     </tr>
+	<tr>
+		<td>nbFilDelaiPlus </td>
+		<td><input type="number" id="nbFilDelaiPlus" name="nbFilDelaiPlus" min="0" max="8" style="text-align: center;width:70px;" onchange="sendNewValue('nbFilDelaiPlus',document.getElementById('nbFilDelaiPlus').value, false);"> &nbsp; &nbsp; &nbsp; &nbsp; 0 - 8</td>
+	  </tr>
 	<tr>
       <td>actionFil </td>
       <td>
@@ -499,44 +507,48 @@
 				<select name="filInit1" id="filInit1" onchange="sendNewValue('actionFilInit','[0,' + this.value + ']', false);">
 				<option value="0">NEUTRE</option>
 				<option value="1">SAFE</option>
-				<option value="2">DELAI</option>
-				<option value="3">EXPLOSION</option>
-				<option value="4">ALEATOIRE</option>
-				<option value="5">COUPE</option>
-				<option value="6">-----</option>
+				<option value="2">DELAI_MOINS</option>
+				<option value="3">DELAI_PLUS</option>
+				<option value="4">EXPLOSION</option>
+				<option value="5">ALEATOIRE</option>
+				<option value="6">COUPE</option>
+				<option value="7">-----</option>
 				</select>
 				</td>
 				<td>
 				<select name="filInit2" id="filInit2" onchange="sendNewValue('actionFilInit','[1,' + this.value + ']', false);">
-				<option value="0">NEUTRE</option>
-				<option value="1">SAFE</option>
-				<option value="2">DELAI</option>
-				<option value="3">EXPLOSION</option>
-				<option value="4">ALEATOIRE</option>
-				<option value="5">COUPE</option>
-				<option value="6">-----</option>				
+					<option value="0">NEUTRE</option>
+					<option value="1">SAFE</option>
+					<option value="2">DELAI_MOINS</option>
+					<option value="3">DELAI_PLUS</option>
+					<option value="4">EXPLOSION</option>
+					<option value="5">ALEATOIRE</option>
+					<option value="6">COUPE</option>
+					<option value="7">-----</option>				
 				</select>
 				</td>
 				<td>
 				<select name="filInit3" id="filInit3" onchange="sendNewValue('actionFilInit','[2,' + this.value + ']', false);">
-				<option value="0">NEUTRE</option>
-				<option value="1">SAFE</option>
-				<option value="2">DELAI</option>
-				<option value="3">EXPLOSION</option>
-				<option value="4">ALEATOIRE</option>
-				<option value="5">COUPE</option>
-				<option value="6">-----</option>
+					<option value="0">NEUTRE</option>
+					<option value="1">SAFE</option>
+					<option value="2">DELAI_MOINS</option>
+					<option value="3">DELAI_PLUS</option>
+					<option value="4">EXPLOSION</option>
+					<option value="5">ALEATOIRE</option>
+					<option value="6">COUPE</option>
+					<option value="7">-----</option>
 				</select>
 				</td>
 				<td>
 				<select name="filInit4" id="filInit4" onchange="sendNewValue('actionFilInit','[3,' + this.value + ']', false);">
-				<option value="0">NEUTRE</option>
-				<option value="1">SAFE</option>
-				<option value="2">DELAI</option>
-				<option value="3">EXPLOSION</option>
-				<option value="4">ALEATOIRE</option>
-				<option value="5">COUPE</option>
-				<option value="6">-----</option>
+					<option value="0">NEUTRE</option>
+					<option value="1">SAFE</option>
+					<option value="2">DELAI_MOINS</option>
+					<option value="3">DELAI_PLUS</option>
+					<option value="4">EXPLOSION</option>
+					<option value="5">ALEATOIRE</option>
+					<option value="6">COUPE</option>
+					<option value="7">-----</option>
 				</select>
 				</td>
 			</tr>
@@ -559,46 +571,50 @@
 			<tr>
 				<td>
 				<select name="filInit5" id="filInit5" onchange="sendNewValue('actionFilInit','[4,' + this.value + ']', false);">
-				<option value="0">NEUTRE</option>
-				<option value="1">SAFE</option>
-				<option value="2">DELAI</option>
-				<option value="3">EXPLOSION</option>
-				<option value="4">ALEATOIRE</option>
-				<option value="5">COUPE</option>
-				<option value="6">-----</option>
+					<option value="0">NEUTRE</option>
+					<option value="1">SAFE</option>
+					<option value="2">DELAI_MOINS</option>
+					<option value="3">DELAI_PLUS</option>
+					<option value="4">EXPLOSION</option>
+					<option value="5">ALEATOIRE</option>
+					<option value="6">COUPE</option>
+					<option value="7">-----</option>
 				</select>
 				</td>
 				<td>
 				<select name="filInit6" id="filInit6" onchange="sendNewValue('actionFilInit','[5,' + this.value + ']', false);">
-				<option value="0">NEUTRE</option>
-				<option value="1">SAFE</option>
-				<option value="2">DELAI</option>
-				<option value="3">EXPLOSION</option>
-				<option value="4">ALEATOIRE</option>
-				<option value="5">COUPE</option>
-				<option value="6">-----</option>
+					<option value="0">NEUTRE</option>
+					<option value="1">SAFE</option>
+					<option value="2">DELAI_MOINS</option>
+					<option value="3">DELAI_PLUS</option>
+					<option value="4">EXPLOSION</option>
+					<option value="5">ALEATOIRE</option>
+					<option value="6">COUPE</option>
+					<option value="7">-----</option>
 				</select>
 				</td>
 				<td>
 				<select name="filInit7" id="filInit7" onchange="sendNewValue('actionFilInit','[6,' + this.value + ']', false);">
-				<option value="0">NEUTRE</option>
-				<option value="1">SAFE</option>
-				<option value="2">DELAI</option>
-				<option value="3">EXPLOSION</option>
-				<option value="4">ALEATOIRE</option>
-				<option value="5">COUPE</option>
-				<option value="6">-----</option>
+					<option value="0">NEUTRE</option>
+					<option value="1">SAFE</option>
+					<option value="2">DELAI_MOINS</option>
+					<option value="3">DELAI_PLUS</option>
+					<option value="4">EXPLOSION</option>
+					<option value="5">ALEATOIRE</option>
+					<option value="6">COUPE</option>
+					<option value="7">-----</option>
 				</select>
 				</td>
 				<td>
 				<select name="filInit8" id="filInit8" onchange="sendNewValue('actionFilInit','[7,' + this.value + ']', false);">
-				<option value="0">NEUTRE</option>
-				<option value="1">SAFE</option>
-				<option value="2">DELAI</option>
-				<option value="3">EXPLOSION</option>
-				<option value="4">ALEATOIRE</option>
-				<option value="5">COUPE</option>
-				<option value="6">-----</option>
+					<option value="0">NEUTRE</option>
+					<option value="1">SAFE</option>
+					<option value="2">DELAI_MOINS</option>
+					<option value="3">DELAI_PLUS</option>
+					<option value="4">EXPLOSION</option>
+					<option value="5">ALEATOIRE</option>
+					<option value="6">COUPE</option>
+					<option value="7">-----</option>
 				</select>
 				</td>
 			</tr>
