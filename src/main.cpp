@@ -214,6 +214,7 @@ void setup()
   WiFi.disconnect(true);
   
   // AP MODE
+  /*
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAPConfig(aConfig.networkConfig.apIP, aConfig.networkConfig.apIP, aConfig.networkConfig.apNetMsk);
   bool apRC = WiFi.softAP(aConfig.networkConfig.apName, aConfig.networkConfig.apPassword);
@@ -231,10 +232,10 @@ void setup()
   Serial.print(F("softAPIP: "));
   Serial.println(WiFi.softAPIP());
   
-  /*
+  */
   // CLIENT MODE POUR DEBUG
-  const char* ssid = "SID";
-  const char* password = "PASSWORD";
+  const char* ssid = "MYDEBUG";
+  const char* password = "aqwzsx789*";
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   
@@ -246,7 +247,7 @@ void setup()
   {
     Serial.println(F("WiFi OK"));
   }
-  */
+  /**/
 
   // Print ESP Local IP Address
   Serial.print(F("localIP: "));
@@ -1049,7 +1050,7 @@ void handleWebsocketBuffer()
         if (doc["new_intervalTemps"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_intervalTemps"];
-          aConfig.objectConfig.intervalTemps = checkValeur(tmpValeur,0,10000);
+          aConfig.objectConfig.intervalTemps = checkValeur(tmpValeur,100,10000);
           intervalTemps = aConfig.objectConfig.intervalTemps;
           
           uneFois=true;
@@ -1058,12 +1059,10 @@ void handleWebsocketBuffer()
           sendObjectConfigFlag = true;
         }        
 
-        if (doc["new_actionFilInit"].is<JsonVariant>())
+        if ( doc["new_actionFilInit"][0].is<unsigned short>() && doc["new_actionFilInit"][1].is<unsigned short>() )
         {
-          JsonArray newActionFil = doc["new_actionFilInit"];
-        
-          uint8_t changePosition = newActionFil[0];
-          uint8_t changeAction = newActionFil[1];
+          uint8_t changePosition = doc["new_actionFilInit"][0];
+          uint8_t changeAction = doc["new_actionFilInit"][1];
           
           aConfig.objectConfig.actionFilInit[changePosition]=changeAction;
           actionFil[changePosition]=changeAction;
@@ -1226,11 +1225,26 @@ void handleWebsocketBuffer()
           writeObjectConfigFlag = true;
           sendObjectConfigFlag = true;
         }
+
+        if ( doc["new_label"][0].is<unsigned char>() && doc["new_label"][1].is<const char*>() )
+        {
+          uint8_t i = doc["new_label"][0];
+          strlcpy(aConfig.objectConfig.labels[i],
+                  doc["new_label"][1],
+                  SIZE_ARRAY);
+
+          // check for unsupported char
+          char const *listeCheck = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-";
+          checkCharacter(aConfig.objectConfig.labels[i], listeCheck, '_');
+
+          writeObjectConfigFlag = true;
+          sendObjectConfigFlag = true;
+        }
           
         // **********************************************
         // modif network config
         // **********************************************
-        if (doc["new_apName"].is<const char*>()) 
+        if (doc["new_apName"].is<const char*>())
         {
           strlcpy(  aConfig.networkConfig.apName,
                     doc["new_apName"],
