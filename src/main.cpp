@@ -103,7 +103,7 @@ uint32_t previousMillisCountdown;
 // FUNCTION DECLARATIONS
 uint8_t indexMaxValeur(uint8_t arraySize, uint8_t arrayToSearch[]);
 uint16_t checkValeur(uint16_t valeur, uint16_t minValeur, uint16_t maxValeur);
-void checkCharacter(char* toCheck, const char* allowed, char replaceChar);
+void checkCharacter(char *toCheck, const char *allowed, char replaceChar);
 void bombeAllumee();
 void bombeActive();
 void bombeExplosion();
@@ -869,7 +869,7 @@ uint8_t indexMaxValeur(uint8_t arraySize, uint8_t arrayToSearch[])
   return(indexMax);
 }
 
-void checkCharacter(char* toCheck, const char* allowed, char replaceChar)
+void checkCharacter(char *toCheck, const char *allowed, char replaceChar)
 {
   for (uint8_t i = 0; i < strlen(toCheck); i++)
   {
@@ -1237,7 +1237,7 @@ void handleWebsocketBuffer()
                     sizeof(aConfig.networkConfig.apName));
         
           // check for unsupported char
-          const char listeCheck[] = "ABCDEFGHIJKLMNOPQRSTUVWYXZ0123456789_-";
+          char const * listeCheck = "ABCDEFGHIJKLMNOPQRSTUVWYXZ0123456789_-";
           checkCharacter(aConfig.networkConfig.apName, listeCheck, 'A');
           
           writeNetworkConfigFlag = true;
