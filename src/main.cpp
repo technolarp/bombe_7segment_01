@@ -457,9 +457,6 @@ void bombeAllumee()
   {
     // iniatialiser le temps restant
     aConfig.objectConfig.tempsRestant=aConfig.objectConfig.tempsInitial;
-
-    // on beep 2 fois
-    buzzer.doubleBeep();
     
     // la bombe est maintenant active
     statutActuel = OBJET_ACTIF;
@@ -478,6 +475,9 @@ void bombeActive()
   {
     uneFois = false;
     Serial.println(F("BOMBE ACTIVE"));
+
+    // on beep 2 fois
+    buzzer.doubleBeep();
 
     sendStatut();
 
