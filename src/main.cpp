@@ -214,7 +214,6 @@ void setup()
   WiFi.disconnect(true);
   
   // AP MODE
-  /*
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAPConfig(aConfig.networkConfig.apIP, aConfig.networkConfig.apIP, aConfig.networkConfig.apNetMsk);
   bool apRC = WiFi.softAP(aConfig.networkConfig.apName, aConfig.networkConfig.apPassword);
@@ -232,10 +231,10 @@ void setup()
   Serial.print(F("softAPIP: "));
   Serial.println(WiFi.softAPIP());
   
-  */
+  /*
   // CLIENT MODE POUR DEBUG
-  const char* ssid = "MYDEBUG";
-  const char* password = "aqwzsx789*";
+  const char* ssid = "SSID";
+  const char* password = "PASSWORD";
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   
@@ -247,7 +246,7 @@ void setup()
   {
     Serial.println(F("WiFi OK"));
   }
-  /**/
+  */
 
   // Print ESP Local IP Address
   Serial.print(F("localIP: "));
