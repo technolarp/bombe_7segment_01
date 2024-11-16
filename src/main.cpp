@@ -1050,7 +1050,7 @@ void handleWebsocketBuffer()
         if (doc["new_intervalTemps"].is<unsigned short>())
         {
           uint16_t tmpValeur = doc["new_intervalTemps"];
-          aConfig.objectConfig.intervalTemps = checkValeur(tmpValeur,0,10000);
+          aConfig.objectConfig.intervalTemps = checkValeur(tmpValeur,100,10000);
           intervalTemps = aConfig.objectConfig.intervalTemps;
           
           uneFois=true;
