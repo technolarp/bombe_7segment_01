@@ -1,5 +1,5 @@
 #include <LittleFS.h>
-#include <ArduinoJson.h> // arduino json v6  // https://github.com/bblanchon/ArduinoJson
+#include <ArduinoJson.h> // arduino json v7  // https://github.com/bblanchon/ArduinoJson
 
 // to upload config dile : https://github.com/earlephilhower/arduino-esp8266littlefs-plugin/releases
 #define SIZE_ARRAY 21
