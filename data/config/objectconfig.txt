@@ -17,5 +17,6 @@
     "nbFilSafe": 1,
     "nbFilDelaiMoins": 1,
 	"nbFilDelaiPlus": 1,
-	"actionFilInit": [0,0,0,0,0,0,0,0]
+	"actionFilInit": [0,0,0,0,0,0,0,0],
+	"labels": ["FIL_1","FIL_2","FIL_3","FIL_4","FIL_5","FIL_6","FIL_7","FIL_8"]
 }

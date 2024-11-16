@@ -59,6 +59,9 @@ class M_config
 
     // DEFINITION DES ACTIONS POUR CHAQUE FIL
     uint8_t actionFilInit[FILS_MAX];
+
+    // Texte personnalisable pour les fils
+    char labels[FILS_MAX][SIZE_ARRAY];
   };
   
   // creer une structure
@@ -156,6 +159,18 @@ class M_config
                   doc["objectName"],
                   SIZE_ARRAY);
       }
+
+      if (doc["labels"].is<JsonVariant>())
+      {
+        JsonArray labelsArray=doc["labels"];
+          
+        for (uint8_t i=0;i<FILS_MAX;i++)
+        {
+          strlcpy(  objectConfig.labels[i],
+                    labelsArray[i],
+                    SIZE_ARRAY);
+        }        
+      }
     }
       
     // Close the file (File's destructor doesn't close the file)
@@ -220,6 +235,13 @@ class M_config
       couleur_x.add(objectConfig.couleurs[i].blue);
     }
 
+    JsonArray labelsArray = doc["labels"].to<JsonArray>();
+
+    for (uint8_t i=0;i<FILS_MAX;i++)
+    {
+      labelsArray.add(objectConfig.labels[i]);
+    }
+
     // Serialize JSON to file
     if (serializeJson(doc, file) == 0) 
     {
@@ -265,6 +287,15 @@ class M_config
     objectConfig.couleurs[1].red = 0;
     objectConfig.couleurs[1].green = 255;
     objectConfig.couleurs[1].blue =  0;
+
+    for (uint8_t i=0;i<FILS_MAX;i++)
+    {
+      char labelTempo[20] = "FIL_x";
+      labelTempo[4] = i + 1 + '0';
+      strlcpy( objectConfig.labels[i],
+             labelTempo,
+             SIZE_ARRAY);      
+    }
     
     strlcpy( objectConfig.objectName,
              "bombe 01",

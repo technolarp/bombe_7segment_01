@@ -220,7 +220,9 @@
 		filActionToChange = "fil" + j;
 		document.getElementById(filInitToChange).value = obj.actionFilInit[i];
 		document.getElementById(filInitToChange).disabled = false;
-		document.getElementById(filActionToChange).innerHTML = "fil " + j;
+		
+		document.getElementById(filActionToChange).value = obj.labels[i];
+		document.getElementById(filActionToChange).disabled = false;
 	  }
 	  
 	  for (let i = nbFil; i < 8; i++)
@@ -230,7 +232,8 @@
 		filActionToChange = "fil" + j;
 		document.getElementById(filInitToChange).value = "7";
 		document.getElementById(filInitToChange).disabled = true;
-		document.getElementById(filActionToChange).innerHTML = "-----";
+		document.getElementById(filActionToChange).value = "-----";
+		document.getElementById(filActionToChange).disabled = true;
 	  }	  
 	}
 	
@@ -387,6 +390,13 @@
   }
   
   
+  function sendNewLabel(name, index, value) 
+  {
+    console.log("{\"new_" + name + "\":[" + index + ",\"" + value + "\"]}");
+    websocket.send("{\"new_" + name + "\":[" + index + ",\"" + value + "\"]}");
+  }
+  
+  
   
   </script>  
 	<body>
@@ -502,10 +512,10 @@
       <td>
 		<table>
 			<tr>
-				<td><span id="fil1"></span></td>
-				<td><span id="fil2"></span></td>
-				<td><span id="fil3"></span></td>
-				<td><span id="fil4"></span></td>
+				<td><input type="text" id="fil1" name="fil1" style="text-align:center;" onchange="sendNewLabel('label',0,this.value);"></td>
+				<td><input type="text" id="fil2" name="fil2" style="text-align:center;" onchange="sendNewLabel('label',1,this.value);"></td>
+				<td><input type="text" id="fil3" name="fil3" style="text-align:center;" onchange="sendNewLabel('label',2,this.value);"></td>
+				<td><input type="text" id="fil4" name="fil4" style="text-align:center;" onchange="sendNewLabel('label',3,this.value);"></td>		
 			</tr>
 			<tr>
 				<td>
@@ -563,15 +573,16 @@
 				<td><span id="filAction2"></span></td>
 				<td><span id="filAction3"></span></td>
 				<td><span id="filAction4"></span></td>
+				
 			</tr>
 			<tr>
 				<td colspan="4">&nbsp;</td>
 			</tr>
 			<tr>
-				<td><span id="fil5"></span></td>
-				<td><span id="fil6"></span></td>
-				<td><span id="fil7"></span></td>
-				<td><span id="fil8"></span></td>
+				<td><input type="text" id="fil5" name="fil5" style="text-align:center;" onchange="sendNewLabel('label',4,this.value);"></td>
+				<td><input type="text" id="fil6" name="fil6" style="text-align:center;" onchange="sendNewLabel('label',5,this.value);"></td>
+				<td><input type="text" id="fil7" name="fil7" style="text-align:center;" onchange="sendNewLabel('label',6,this.value);"></td>
+				<td><input type="text" id="fil8" name="fil8" style="text-align:center;" onchange="sendNewLabel('label',7,this.value);"></td>
 			</tr>
 			<tr>
 				<td>
