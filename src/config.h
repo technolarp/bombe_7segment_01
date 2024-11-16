@@ -434,6 +434,7 @@ class M_config
     
   writeNetworkConfig(filename);
   }
+  
   void stringJsonFile(const char * filename, char * target, uint16_t targetReadSize)
   {
     // Open file for reading
