@@ -915,7 +915,8 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
       case WS_EVT_DATA:
         handleWebSocketMessage(arg, data, len);
         break;
-        
+      
+      case WS_EVT_PING:
       case WS_EVT_PONG:
       case WS_EVT_ERROR:
         break;
