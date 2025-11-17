@@ -2,7 +2,7 @@
    ----------------------------------------------------------------------------
    TECHNOLARP - https://technolarp.github.io/
    BOMBE 7SEGMENT 01 - https://github.com/technolarp/bombe_7segment_01
-   version 1.1.0 - 05/2025
+   version 1.3.0 - 11/2025
    ----------------------------------------------------------------------------
 */
 
@@ -48,11 +48,14 @@ AsyncWebSocket ws("/ws");
 char bufferWebsocket[300];
 bool flagBufferWebsocket = false;
 
+// MDNS
+#include <ESP8266mDNS.h>
+
 // CONFIG
 #include "config.h"
 M_config aConfig;
 
-#define BUFFERSENDSIZE 600
+#define BUFFERSENDSIZE 1024
 char bufferToSend[BUFFERSENDSIZE];
 
 // FASTLED
@@ -144,7 +147,7 @@ void setup()
   Serial.println(F("----------------------------------------------------------------------------"));
   Serial.println(F("TECHNOLARP - https://technolarp.github.io/"));
   Serial.println(F("BOMBE 7SEGMENT 01 - https://github.com/technolarp/bombe_7segment_01"));
-  Serial.println(F("version 1.1.0 - 05/2025"));
+  Serial.println(F("version 1.3.0 - 11/2025"));
   Serial.println(F("----------------------------------------------------------------------------"));
   
   // I2C RESET
@@ -163,12 +166,12 @@ void setup()
   aConfig.listDir("/www");
   
   Serial.println(F("OBJECT CONFIG"));
-  aConfig.printJsonFile("/config/objectconfig.txt");
-  aConfig.readObjectConfig("/config/objectconfig.txt");
+  aConfig.printJsonFile("/config/objectconfig.json");
+  aConfig.readObjectConfig("/config/objectconfig.json");
 
   Serial.println(F("NETWORK CONFIG"));
-  aConfig.printJsonFile("/config/networkconfig.txt");
-  aConfig.readNetworkConfig("/config/networkconfig.txt");
+  aConfig.printJsonFile("/config/networkconfig.json");
+  aConfig.readNetworkConfig("/config/networkconfig.json");
 
   // CHECK RESET OBJECT CONFIG  
   if (!aMcp23017.readPin(BOUTON_1) && !aMcp23017.readPin(BOUTON_3) )
@@ -178,7 +181,7 @@ void setup()
     Serial.println(F(""));
     Serial.println(F("!!! RESET OBJECT CONFIG !!!"));
     Serial.println(F(""));
-    aConfig.writeDefaultObjectConfig("/config/objectconfig.txt");
+    aConfig.writeDefaultObjectConfig("/config/objectconfig.json");
     sendObjectConfig();
 
     delay(1000);
@@ -193,7 +196,7 @@ void setup()
     Serial.println(F(""));
     Serial.println(F("!!! RESET NETWORK CONFIG !!!"));
     Serial.println(F(""));
-    aConfig.writeDefaultNetworkConfig("/config/networkconfig.txt");
+    aConfig.writeDefaultNetworkConfig("/config/networkconfig.json");
     sendNetworkConfig();
 
     delay(1000);
@@ -207,52 +210,130 @@ void setup()
   aFastled.setNbLed(aConfig.objectConfig.activeLeds);
   aFastled.setBrightness(aConfig.objectConfig.brightness);
   
-  // animation led de depart  
-  aFastled.animationDepart(50, aFastled.getNbLed()*2, CRGB::Blue);
+  // animation led de depart
+  aFastled.animationDepart(50, aFastled.getNbLed() * 2, CRGB::Blue);
 
-  // WIFI
-  WiFi.disconnect(true);
-  
-  // AP MODE
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.softAPConfig(aConfig.networkConfig.apIP, aConfig.networkConfig.apIP, aConfig.networkConfig.apNetMsk);
-  bool apRC = WiFi.softAP(aConfig.networkConfig.apName, aConfig.networkConfig.apPassword);
+  // LOOP TO WIFI CLIENT
+  Serial.println(F(""));
+  Serial.println(F("connecting to wifi as client"));
 
-  if (apRC)
+  for (uint8_t i = 0; i < WIFI_CLIENTS; i++)
   {
-    Serial.println(F("AP WiFi OK"));
+    if (aConfig.networkConfig.active[i] && strlen(aConfig.networkConfig.ssid[i])>0)
+    {
+      if (WiFi.status() != WL_CONNECTED)
+      {
+        Serial.print(F("ssid: "));
+        Serial.print(aConfig.networkConfig.ssid[i]);
+        Serial.print(F(" - delay: "));
+        Serial.print(aConfig.networkConfig.wifiConnectDelay);
+        Serial.println(F(" seconds"));
+
+        bool ledState=true;
+        bool wifiFlag=true;
+        
+        WiFi.disconnect(true);
+        delay(500);
+        WiFi.begin(aConfig.networkConfig.ssid[i], aConfig.networkConfig.password[i]);
+
+        FastLED.clear();
+        // Loop continuously while WiFi is not connected
+        while ( (WiFi.status() != WL_CONNECTED) && (wifiFlag) )
+        {
+          delay(100);
+          Serial.print("/");
+          
+          if (ledState)
+          {
+            aFastled.ledOn(i%aConfig.objectConfig.activeLeds, CRGB::Blue, false);
+          }
+          else
+          {
+            aFastled.ledOn(i%aConfig.objectConfig.activeLeds, CRGB::Black, false);
+          }
+
+          aFastled.ledShow();
+          ledState = !ledState;
+
+          if (millis() - previousMillisHB > (aConfig.networkConfig.wifiConnectDelay*1000) )
+          {
+            previousMillisHB = millis();
+            wifiFlag = false;
+          }
+        }
+      }
+
+      Serial.println(F(" "));
+      if (WiFi.status() == WL_CONNECTED)
+      {
+        Serial.print(F("connected to "));
+        Serial.println(aConfig.networkConfig.ssid[i]);
+        Serial.print(F("IP address: "));
+        Serial.println(WiFi.localIP());
+
+        // MDNS
+        if (!MDNS.begin(aConfig.objectConfig.objectName))
+        {
+          Serial.println("Error setting up MDNS responder!");
+        }
+        Serial.println("mDNS responder started");
+        Serial.print(F("connect on webUI admin page : http://"));
+        Serial.print(aConfig.objectConfig.objectName);
+        Serial.println(F(".local"));        
+      }
+      else
+      {
+        if (aConfig.networkConfig.disableSsid)
+        {
+          Serial.print(F("disable this ssid: "));
+          Serial.println(aConfig.networkConfig.ssid[i]);
+          aConfig.networkConfig.active[i]=false;
+          writeNetworkConfig();
+        }
+        if (aConfig.networkConfig.rebootEsp)
+        {
+          Serial.println(F("reboot"));
+          delay(1000);
+          ESP.restart();
+        }        
+      }
+    }    
   }
-  else
+  Serial.println(" ");
+  
+  // WIFI AP MODE
+  if (WiFi.status() != WL_CONNECTED)
   {
-    Serial.println(F("AP WiFi failed"));
+    Serial.print(F("failed to connect to wifi as client, creating a wifi AP: "));
+    Serial.println(aConfig.networkConfig.apName);
+
+    // WiFi.mode(WIFI_AP_STA);
+    WiFi.mode(WIFI_AP);
+    WiFi.softAPConfig(aConfig.networkConfig.apIP,aConfig.networkConfig.apIP,aConfig.networkConfig.apNetMsk);
+    bool apRC = WiFi.softAP(aConfig.networkConfig.apName, aConfig.networkConfig.apPassword);
+
+    if (apRC)
+    {
+      Serial.println(F("AP WiFi OK"));
+    }
+    else
+    {
+      Serial.println(F("AP WiFi failed"));
+    }
+
+    // Print ESP soptAP IP Address
+    Serial.print(F("softAPIP: "));
+    Serial.println(WiFi.softAPIP());
+
+    // MDNS
+    if (!MDNS.begin("technolarp"))
+    {
+      Serial.println("Error setting up MDNS responder!");
+    }
+    Serial.println("mDNS responder started");
+    Serial.println(F("connect on webUI admin page : http://technolarp.local"));
   }
 
-  // Print ESP soptAP IP Address
-  Serial.print(F("softAPIP: "));
-  Serial.println(WiFi.softAPIP());
-  
-  /*
-  // CLIENT MODE POUR DEBUG
-  const char* ssid = "SSID";
-  const char* password = "PASSWORD";
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  
-  if (WiFi.waitForConnectResult() != WL_CONNECTED) 
-  {
-    Serial.println(F("WiFi Failed!"));
-  }
-  else
-  {
-    Serial.println(F("WiFi OK"));
-  }
-  */
-
-  // Print ESP Local IP Address
-  Serial.print(F("localIP: "));
-  Serial.println(WiFi.localIP());
-  
-  
   // WEB SERVER
   // Route for root / web page
   server.serveStatic("/", LittleFS, "/www/").setDefaultFile("config.html");
@@ -367,6 +448,9 @@ void loop()
     // envoyer l'uptime
     sendUptime();
   }
+
+  // MDNS
+  MDNS.update();
 }
 /*
    ----------------------------------------------------------------------------
@@ -1253,22 +1337,102 @@ void handleWebsocketBuffer()
           
         // **********************************************
         // modif network config
-        // **********************************************
-        if (doc["new_apName"].is<const char*>())
-        {
-          strlcpy(  aConfig.networkConfig.apName,
-                    doc["new_apName"],
-                    sizeof(aConfig.networkConfig.apName));
-        
-          // check for unsupported char
-          char const * listeCheck = "ABCDEFGHIJKLMNOPQRSTUVWYXZ0123456789_-";
-          checkCharacter(aConfig.networkConfig.apName, listeCheck, 'A');
-          
-          writeNetworkConfigFlag = true;
-          sendNetworkConfigFlag = true;
-        }
-        
-        if (doc["new_apPassword"].is<const char*>()) 
+    if (doc["new_active"].is<JsonVariant>())
+    {
+      JsonArray newActive = doc["new_active"];
+
+      uint8_t x = checkValeur(newActive[0], 0, WIFI_CLIENTS - 1);
+      uint8_t y = checkValeur(newActive[1], 0, 1);
+
+      aConfig.networkConfig.active[x] = y;
+
+      writeNetworkConfigFlag = true;
+      sendNetworkConfigFlag = true;
+
+      // update statut
+      uneFois = true;
+    }
+
+    if (doc["new_ssid"].is<JsonVariant>())
+    {
+      JsonArray newSsid = doc["new_ssid"];
+
+      uint8_t x = checkValeur(newSsid[0], 0, WIFI_CLIENTS - 1);
+      strlcpy(aConfig.networkConfig.ssid[x],
+              newSsid[1],
+              sizeof(aConfig.networkConfig.ssid[x]));
+
+      writeNetworkConfigFlag = true;
+      sendNetworkConfigFlag = true;
+
+      // update statut
+      uneFois = true;
+    }
+
+    if (doc["new_password"].is<JsonVariant>())
+    {
+      JsonArray newPassword = doc["new_password"];
+
+      uint8_t x = checkValeur(newPassword[0], 0, WIFI_CLIENTS - 1);
+      strlcpy(aConfig.networkConfig.password[x],
+              newPassword[1],
+              sizeof(aConfig.networkConfig.password[x]));
+
+      writeNetworkConfigFlag = true;
+      sendNetworkConfigFlag = true;
+
+      // update statut
+      uneFois = true;
+    }
+
+    if (doc["new_wifiConnectDelay"].is<unsigned short>())
+    {
+      uint16_t tmpValeur = doc["new_wifiConnectDelay"];
+      aConfig.networkConfig.wifiConnectDelay = checkValeur(tmpValeur, 1, 255);
+
+      writeNetworkConfigFlag = true;
+      sendNetworkConfigFlag = true;
+    }
+
+    if (doc["new_disableSsid"].is<unsigned short>())
+    {
+      uint16_t tmpValeur = doc["new_disableSsid"];
+      aConfig.networkConfig.disableSsid = checkValeur(tmpValeur, 0, 1);
+
+      writeNetworkConfigFlag = true;
+      sendNetworkConfigFlag = true;
+    }
+
+    if (doc["new_rebootEsp"].is<unsigned short>())
+    {
+      uint16_t tmpValeur = doc["new_rebootEsp"];
+      aConfig.networkConfig.rebootEsp = checkValeur(tmpValeur, 0, 1);
+
+      writeNetworkConfigFlag = true;
+      sendNetworkConfigFlag = true;
+    }
+
+    if (doc["new_apName"].is<const char*>())
+    {
+      strlcpy(aConfig.networkConfig.apName,
+              doc["new_apName"],
+              sizeof(aConfig.networkConfig.apName));
+
+      // uppercase
+      for (uint8_t i = 0; i < sizeof(aConfig.objectConfig.objectName); i++)
+      {
+        aConfig.networkConfig.apName[i] = toupper(aConfig.networkConfig.apName[i]);
+      }
+      
+      // check for unsupported char
+      char const * listeCheck = "ABCDEFGHIJKLMNOPQRSTUVWYXZ0123456789_-";
+      checkCharacter(aConfig.networkConfig.apName, listeCheck, 'A');      
+
+      writeNetworkConfigFlag = true;
+      sendNetworkConfigFlag = true;
+    }
+
+    if (doc["new_apPassword"].is<const char*>()) 
         {
           strlcpy(  aConfig.networkConfig.apPassword,
                     doc["new_apPassword"],
@@ -1336,7 +1500,7 @@ void handleWebsocketBuffer()
         
         if (doc["new_defaultObjectConfig"].is<unsigned char>() && doc["new_defaultObjectConfig"]==1 )
         {
-          aConfig.writeDefaultObjectConfig("/config/objectconfig.txt");
+          aConfig.writeDefaultObjectConfig("/config/objectconfig.json");
           Serial.println(F("reset to default object config"));
         
           aFastled.allLedOff();
@@ -1350,7 +1514,7 @@ void handleWebsocketBuffer()
         
         if (doc["new_defaultNetworkConfig"].is<unsigned char>() && doc["new_defaultNetworkConfig"]==1 )
         {
-          aConfig.writeDefaultNetworkConfig("/config/networkconfig.txt");
+          aConfig.writeDefaultNetworkConfig("/config/networkconfig.json");
           Serial.println(F("reset to default network config"));          
           
           sendNetworkConfigFlag = true;
@@ -1396,24 +1560,24 @@ void notFound(AsyncWebServerRequest *request)
 
 void sendObjectConfig()
 {
-  aConfig.stringJsonFile("/config/objectconfig.txt", bufferToSend, BUFFERSENDSIZE);
+  aConfig.stringJsonFile("/config/objectconfig.json", bufferToSend, BUFFERSENDSIZE);
   ws.textAll(bufferToSend);
 }
 
 void writeObjectConfig()
 {
-  aConfig.writeObjectConfig("/config/objectconfig.txt");
+  aConfig.writeObjectConfig("/config/objectconfig.json");
 }
 
 void sendNetworkConfig()
 {
-  aConfig.stringJsonFile("/config/networkconfig.txt", bufferToSend, BUFFERSENDSIZE);
+  aConfig.stringJsonFile("/config/networkconfig.json", bufferToSend, BUFFERSENDSIZE);
   ws.textAll(bufferToSend);
 }
 
 void writeNetworkConfig()
 {
-  aConfig.writeNetworkConfig("/config/networkconfig.txt");
+  aConfig.writeNetworkConfig("/config/networkconfig.json");
 }
 
 void convertStrToRGB(const char * source, uint8_t* r, uint8_t* g, uint8_t* b)
