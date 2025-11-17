@@ -958,10 +958,20 @@ void handleWebsocketBuffer()
         // modif object config
         // **********************************************
         if (doc["new_objectName"].is<const char*>())
-        {
-          strlcpy(  aConfig.objectConfig.objectName,
-                    doc["new_objectName"],
-                    SIZE_ARRAY);
+    {
+      strlcpy(aConfig.objectConfig.objectName,
+              doc["new_objectName"],
+              sizeof(aConfig.objectConfig.objectName));
+
+      // lowercase
+      for (uint8_t i = 0; i < sizeof(aConfig.objectConfig.objectName); i++)
+      {
+        aConfig.objectConfig.objectName[i] = tolower(aConfig.objectConfig.objectName[i]);
+      }
+      
+      // check character
+      char const * listeCheck = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
+      checkCharacter(aConfig.objectConfig.objectName, listeCheck, '-');
   
           writeObjectConfigFlag = true;
           sendObjectConfigFlag = true;
