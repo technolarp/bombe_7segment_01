@@ -170,13 +170,6 @@ void setup()
   aConfig.printJsonFile("/config/networkconfig.txt");
   aConfig.readNetworkConfig("/config/networkconfig.txt");
 
-  // FASTLED
-  aFastled.setNbLed(aConfig.objectConfig.activeLeds);
-  aFastled.setBrightness(aConfig.objectConfig.brightness);
-  
-  // animation led de depart  
-  aFastled.animationDepart(50, aFastled.getNbLed()*2, CRGB::Blue);
-
   // CHECK RESET OBJECT CONFIG  
   if (!aMcp23017.readPin(BOUTON_1) && !aMcp23017.readPin(BOUTON_3) )
   {
@@ -209,6 +202,13 @@ void setup()
 
   // initialiser l'aleat
   randomSeed(ESP.getCycleCount());
+
+  // FASTLED
+  aFastled.setNbLed(aConfig.objectConfig.activeLeds);
+  aFastled.setBrightness(aConfig.objectConfig.brightness);
+  
+  // animation led de depart  
+  aFastled.animationDepart(50, aFastled.getNbLed()*2, CRGB::Blue);
 
   // WIFI
   WiFi.disconnect(true);
