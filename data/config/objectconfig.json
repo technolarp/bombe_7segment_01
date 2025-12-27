@@ -1,7 +1,7 @@
 {
 	"objectId": 1,
 	"groupId": 1,
-	"objectName": "bombe 01",
+	"objectName": "bombe-01",
 	"activeLeds": 8,
     "brightness": 80,
 	"intervalScintillement":50,
