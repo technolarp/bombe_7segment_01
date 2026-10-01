@@ -582,7 +582,8 @@ class M_config
     File file = LittleFS.open(filename, "r");
     if (!file) 
     {
-      Serial.println(F("Failed to open file for reading"));
+      Serial.print(F("Failed to open file for reading: "));
+      Serial.println(filename);
     }
       
     JsonDocument doc;
@@ -591,7 +592,8 @@ class M_config
     DeserializationError error = deserializeJson(doc, file);
     if (error)
     {
-      Serial.println(F("Failed to deserialize file in print object"));
+      Serial.print(F("Failed to deserialize file: "));
+      Serial.println(filename);
       Serial.println(error.c_str());
     }
     else
@@ -626,6 +628,26 @@ class M_config
       file.close();
     }
     Serial.println();
+  }
+
+  bool validateJsonFile(const char * filename)
+  {
+    // Open file for reading
+    File file = LittleFS.open(filename, "r");
+    if (!file) 
+    {
+      Serial.println(F("Failed to open file for reading"));
+      return false;
+    }
+      
+    JsonDocument doc, filter;
+    bool rc = deserializeJson(doc, file, DeserializationOption::Filter(filter)) == DeserializationError::Ok;
+
+    // Close the file (File's destructor doesn't close the file)
+    file.close();
+
+    // return the result
+    return rc;
   }
 
   // I2C RESET

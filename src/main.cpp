@@ -165,11 +165,41 @@ void setup()
   aConfig.listDir("/config");
   aConfig.listDir("/www");
   
+  // CHECK OBJECT CONFIG
   Serial.println(F("OBJECT CONFIG"));
+  if (aConfig.validateJsonFile("/config/objectconfig.json"))
+  {
+    Serial.println(F("object config file is valid"));
+  }
+  else
+  {
+    aFastled.allLedOn(CRGB::Yellow, true);
+    Serial.println(F("object config file is not valid, writing default object config"));
+    aConfig.writeDefaultObjectConfig("/config/objectconfig.json");
+    delay(1000);
+    aFastled.allLedOff();
+  }
+  
+  // READ OBJECT CONFIG
   aConfig.printJsonFile("/config/objectconfig.json");
   aConfig.readObjectConfig("/config/objectconfig.json");
   
+  // CHECK NETWORK CONFIG
   Serial.println(F("NETWORK CONFIG"));
+  if (aConfig.validateJsonFile("/config/networkconfig.json"))
+  {
+    Serial.println(F("network config file is valid"));
+  }
+  else
+  {
+    aFastled.allLedOn(CRGB::Cyan, true);
+    Serial.println(F("network config file is not valid, writing default network config"));
+    aConfig.writeDefaultNetworkConfig("/config/networkconfig.json");
+    delay(1000);
+    aFastled.allLedOff();
+  }  
+
+  // READ NETWORK CONFIG
   aConfig.printJsonFile("/config/networkconfig.json");
   aConfig.readNetworkConfig("/config/networkconfig.json");
   
@@ -188,7 +218,7 @@ void setup()
   }
   aFastled.allLedOff();
   
-  // CHECK RESET OBJECT CONFIG  
+  // CHECK RESET NETWORK CONFIG  
   if (!aMcp23017.readPin(BOUTON_2) && !aMcp23017.readPin(BOUTON_3) )
   {
     aFastled.allLedOn(CRGB::Cyan, true);
