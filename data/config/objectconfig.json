@@ -7,7 +7,7 @@
 	"intervalScintillement":50,
 	"scintillementOnOff":0,
 	"couleurs": [[255,0,0],[0,255,0]],
-	"tempsInitial": 500,
+	"tempsInitial": 300,
 	"intervalTemps": 1000,
 	"tempsRestant": 300,
 	"beepEvery": 30,

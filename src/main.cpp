@@ -167,6 +167,7 @@ void setup()
   
   // CHECK OBJECT CONFIG
   Serial.println(F("OBJECT CONFIG"));
+  
   if (aConfig.validateJsonFile("/config/objectconfig.json"))
   {
     Serial.println(F("object config file is valid"));
