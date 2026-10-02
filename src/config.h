@@ -609,6 +609,33 @@ class M_config
     // Close the file (File's destructor doesn't close the file)
     file.close();
   }
+
+  bool validateJsonFile(const char * filename)
+  {
+    // Open file for reading
+    File file = LittleFS.open(filename, "r");
+    if (!file) 
+    {
+      Serial.println(F("Failed to open file for reading"));
+      return false;
+    }
+
+    // Deserialize the JSON document
+    bool validate_rc = true;
+    JsonDocument doc;
+    
+    DeserializationError error = deserializeJson(doc, file);
+    if (error)
+    {
+      validate_rc = false;
+    }
+
+    // Close the file (File's destructor doesn't close the file)
+    file.close();
+
+    // return the result
+    return validate_rc;
+  }
   
   void listDir(const char * dirname)
   {
@@ -630,26 +657,7 @@ class M_config
     Serial.println();
   }
 
-  bool validateJsonFile(const char * filename)
-  {
-    // Open file for reading
-    File file = LittleFS.open(filename, "r");
-    if (!file) 
-    {
-      Serial.println(F("Failed to open file for reading"));
-      return false;
-    }
-      
-    JsonDocument doc, filter;
-    bool rc = deserializeJson(doc, file, DeserializationOption::Filter(filter)) == DeserializationError::Ok;
-
-    // Close the file (File's destructor doesn't close the file)
-    file.close();
-
-    // return the result
-    return rc;
-  }
-
+  
   // I2C RESET
   void i2cReset()
   {
