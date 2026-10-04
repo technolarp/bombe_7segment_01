@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------
 TECHNOLARP - https://technolarp.github.io/
 BOMBE 7SEGMENT 01 - https://github.com/technolarp/bombe_7segment_01
-version 1.3.0 - 11/2025
+version 1.4.0 - 10/2026
 ----------------------------------------------------------------------------
 */
 
@@ -147,7 +147,7 @@ void setup()
   Serial.println(F("----------------------------------------------------------------------------"));
   Serial.println(F("TECHNOLARP - https://technolarp.github.io/"));
   Serial.println(F("BOMBE 7SEGMENT 01 - https://github.com/technolarp/bombe_7segment_01"));
-  Serial.println(F("version 1.3.0 - 11/2025"));
+  Serial.println(F("version 1.4.0 - 10/2026"));
   Serial.println(F("----------------------------------------------------------------------------"));
   
   // I2C RESET
