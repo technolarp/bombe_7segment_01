@@ -48,6 +48,10 @@ AsyncWebSocket ws("/ws");
 char bufferWebsocket[300];
 bool flagBufferWebsocket = false;
 
+//DNS 
+#include <DNSServer.h>
+DNSServer dnsServer;
+
 // MDNS
 #include <ESP8266mDNS.h>
 
@@ -356,6 +360,13 @@ void setup()
     Serial.print(F("softAPIP: "));
     Serial.println(WiFi.softAPIP());
     
+    // DNS
+    if(!dnsServer.start(53, "*", aConfig.networkConfig.apIP))
+    {
+      Serial.println("Error setting up DNS server!");
+    }
+    Serial.println("DNS server started");
+
     // MDNS
     if (!MDNS.begin("technolarp"))
     {
@@ -363,14 +374,31 @@ void setup()
     }
     Serial.println("mDNS responder started");
     Serial.println(F("connect on webUI admin page : http://technolarp.local"));
+
+    server.onNotFound([](AsyncWebServerRequest *request)
+    {
+      // Si la requête ne vise pas l'IP locale de l'ESP, on redirige vers le portail
+      if (request->host() != aConfig.networkConfig.apIP.toString())
+      {
+        request->redirect("http://technolarp.local");
+      }
+      else
+      {
+        // Si l'utilisateur tape l'IP mais demande une page inexistante (ex: /inconnu)
+        request->send(LittleFS, "/www/config.html", "text/html");
+      }
+    });
+  }
+  else
+  {
+    server.onNotFound(notFound);
   }
   
   // WEB SERVER
   // Route for root / web page
   server.serveStatic("/", LittleFS, "/www/").setDefaultFile("config.html");
   server.serveStatic("/config", LittleFS, "/config/");
-  server.onNotFound(notFound);
-  
+    
   // WEBSOCKET
   ws.onEvent(onEvent);
   server.addHandler(&ws);
@@ -403,6 +431,9 @@ LOOP
 */
 void loop()
 {
+  // DNS
+  dnsServer.processNextRequest();
+  
   // AVOID WATCHDOG
   yield();
   
