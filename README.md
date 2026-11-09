@@ -18,7 +18,7 @@ Un exemple du kit technoLARP monté pour une bombe_7segment_01
 
 Voici un exemple de casing plus avancé
 
-<img src="./images/bombe_7segment_01_casing.png" width="400">
+<img src="./images/bombe_7segment_01_casing.jpg" width="400">
 
 ## Composants
 Vous aurez besoin pour monter la bombe_7segment_01
@@ -34,11 +34,19 @@ Vous aurez besoin pour monter la bombe_7segment_01
 | Une batterie 18650 et son support | <img src="./images/technolarp_18650.jpg" width="200"> |
 
 ## Branchements
+Connecter les composants sur le kit technoLARP comme sur cette photo
+
+<img src="./images/bombe_7segment_01_branchements.png" width="600">
+
  - Branchez le ruban ou anneau led ws2812b sur le port "leds ws2812b"
  - Branchez le buzzer sur son port "buzzer"
  - Branchez l'afficheur 4 * 7 segments sur le port I2C_1
  - Branchez les 4 boutons poussoirs sur les broches du MCP23017 numérotées b0 à b3
  - Branchez les fils de désamorçage sur les broches a0 à a7 (et sur la masse GND)
+ 
+<img src="./images/technolarp_pcb_connecteurs.png" width="600">
+
+### Boutons poussoirs
 
 Les 4 boutons poussoirs se connectent ainsi :
 
@@ -49,11 +57,13 @@ Les 4 boutons poussoirs se connectent ainsi :
 | bouton poussoir ACTIVATION | b3 |
 
 Attention au sens de numérotation des broches :
+<img src="./images/bombe_7segment_01_pinA7B7.png" width="400">
 
 | a7    <====    a0 | b0   ====>     b7 |
 | :---: | :---: |
 
-<img src="./images/technolarp_pcb_connecteurs.png" width="600">
+<img src="./images/bombe_7segment_01_exempleConnexionFils.png" width="400">
+
 
 ## Installation du firmware
 Pour installer le firmware de l'objet, il faut suivre ce [tutorial](https://github.com/technolarp/technolarp.github.io/wiki/Installation-du-firmware)  
@@ -71,6 +81,9 @@ Une fois la bombe mise sous tension par batterie ou câble USB, elle se place da
 
 Il est possible d'ajouter des fils de désamorçage pour rendre la bombe plus interactive. Il peut y avoir jusqu'à 8 fils de désamorçage. Un fil sera connecté sur une des broches a0 à a7 (broches vertes) d'un côté, et sur la masse (GND), c'est-à-dire les broches noires juste au-dessus des broches vertes.
 
+Exemple avec 4 fils de désamorçage :
+<img src="./images/bombe_7segment_01_desamorçage_1.png" width="400">
+
 L'ordre des fils est fixé :
 
 | Fil n° 01 | broche a0 |
@@ -83,11 +96,14 @@ L'ordre des fils est fixé :
 | Fil n° 07 | broche a6 |
 | Fil n° 08 | broche a7 |
 
+Cet exemple montre fil n°4 (jaune) qui a été déconnecté. Cela permet de “couper” un fil et de pouvoir le réutiliser plus tard.
+<img src="./images/bombe_7segment_01_desamorçage_2.png" width="400">
+
 ## BackOffice
 Pour se connecter au back office de l'objet, il faut suivre ce [tutorial](https://github.com/technolarp/technolarp.github.io/wiki/Connexion-au-back-office-de-l'objet-via-le-wifi)  
 
 
-<img width="608" alt="serrure_clavier_01_back-office" src="./images/serrure_clavier_01_backoffice.png" />
+<img width="608" alt="serrure_clavier_01_back-office" src="./images/bombe_7segment_01_backoffice.png" />
 
 ## Paramètres de gameplay
 Ces paramètres permettent de contrôler le gameplay de l’objet.
@@ -121,9 +137,9 @@ Si un fil est paramétré avec une de ces actions, ce fil ne sera pas affecté p
 NEUTRE, SAFE, DELAI, EXPLOSION
 
 Si un ou plusieurs fils sont paramétrés en action ALEATOIRE, alors la bombe affecte les actions dans cet ordre, en fonction des paramètres nbFilExplosion, nbFilSafe et nbFilDelai :
-1 - EXPLOSION
-2 - SAFE
-3 - DELAI
+* 1 - EXPLOSION
+* 2 - SAFE
+* 3 - DELAI
 
 ## Paramètres Réseau
 
