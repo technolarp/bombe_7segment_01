@@ -5,8 +5,8 @@ Cet objet simule une bombe avec un afficheur 4 x 7 segments et des fils qui perm
 **[Composants](#Composants)**  
 **[Branchements](#Branchements)**  
 **[Installation du firmware](#Installation-du-firmware)**  
-**[Mode d’emploi](#)**   
-**[Fils de désamorçage](#)**   
+**[Mode d’emploi](#mode-demploi)**   
+**[Fils de désamorçage](#fils-de-désamorçage)**   
 **[Back Office](#BackOffice)**  
 **[Paramètres de gameplay](#param%C3%A8tres-de-gameplay)**  
 **[Paramètres Réseau](#param%C3%A8tres-r%C3%A9seau)** 
