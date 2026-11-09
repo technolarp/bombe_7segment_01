@@ -57,6 +57,7 @@ Les 4 boutons poussoirs se connectent ainsi :
 | bouton poussoir ACTIVATION | b3 |
 
 Attention au sens de numérotation des broches :
+
 <img src="./images/bombe_7segment_01_pinA7B7.png" width="400">
 
 | a7    <====    a0 | b0   ====>     b7 |
@@ -82,6 +83,7 @@ Une fois la bombe mise sous tension par batterie ou câble USB, elle se place da
 Il est possible d'ajouter des fils de désamorçage pour rendre la bombe plus interactive. Il peut y avoir jusqu'à 8 fils de désamorçage. Un fil sera connecté sur une des broches a0 à a7 (broches vertes) d'un côté, et sur la masse (GND), c'est-à-dire les broches noires juste au-dessus des broches vertes.
 
 Exemple avec 4 fils de désamorçage :
+
 <img src="./images/bombe_7segment_01_desamorçage_1.png" width="400">
 
 L'ordre des fils est fixé :
@@ -97,6 +99,7 @@ L'ordre des fils est fixé :
 | Fil n° 08 | broche a7 |
 
 Cet exemple montre fil n°4 (jaune) qui a été déconnecté. Cela permet de “couper” un fil et de pouvoir le réutiliser plus tard.
+
 <img src="./images/bombe_7segment_01_desamorçage_2.png" width="400">
 
 ## BackOffice
